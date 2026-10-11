@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
+import org.springdoc.core.customizers.ParameterCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,6 +19,27 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfig {
+
+	/**
+	 * The balance endpoint is one operation that serves both the current balance
+	 * and the balance at a past instant, so its at parameter is optional. The flag
+	 * in the document must come from the contract, not from the binding of the
+	 * historical half of the pair, where the parameter is always present: springdoc
+	 * derives required from the binding annotation and no annotation can unset it,
+	 * so the served document is corrected here. The at parameter exists on one
+	 * endpoint only, so its name identifies it. Springdoc also calls the customizer
+	 * with the parameters it did not model, such as request bodies, hence the null
+	 * check.
+	 */
+	@Bean
+	ParameterCustomizer thePastInstantIsOptional() {
+		return (parameter, boundTo) -> {
+			if (parameter != null && "at".equals(parameter.getName())) {
+				parameter.setRequired(false);
+			}
+			return parameter;
+		};
+	}
 
 	@Bean
 	OpenAPI walletServiceApi() {

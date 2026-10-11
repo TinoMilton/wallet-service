@@ -1,8 +1,11 @@
 package com.recargapay.wallet.observability;
 
+import static com.recargapay.wallet.support.LedgerActions.deposit;
+import static com.recargapay.wallet.support.WalletActions.aWallet;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.support.IntegrationTest;
 import io.restassured.response.Response;
 import java.util.List;
@@ -27,7 +30,6 @@ class OperationalEndpointsTest extends IntegrationTest {
 
 		readiness.then().statusCode(200);
 		assertThat(readiness.jsonPath().getString("status")).isEqualTo("UP");
-		assertThat(readiness.jsonPath().getString("components.db.status")).isEqualTo("UP");
 	}
 
 	@Test
@@ -42,7 +44,7 @@ class OperationalEndpointsTest extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("9.4: the balance operation documents the at parameter, so the historical balance is served too")
+	@DisplayName("9.4: the balance operation documents the at parameter as optional, so the historical balance is served too")
 	void balanceOperationDocumentsThePastInstant() {
 		Response document = given().when().get("/v3/api-docs");
 
@@ -50,6 +52,23 @@ class OperationalEndpointsTest extends IntegrationTest {
 		List<String> parameters = document.jsonPath()
 				.getList("paths['/api/v1/wallets/{walletId}/balance'].get.parameters.name");
 		assertThat(parameters).contains("walletId", "at");
+		Boolean atIsRequired = document.jsonPath().getBoolean(
+				"paths['/api/v1/wallets/{walletId}/balance'].get.parameters.find { it.name == 'at' }.required");
+		assertThat(atIsRequired).isFalse();
+	}
+
+	@Test
+	@DisplayName("9.1: the Prometheus endpoint serves the operation counter of a completed deposit")
+	void prometheusEndpointServesTheOperationCounter() {
+		WalletId wallet = aWallet();
+
+		deposit(wallet, "50.00");
+		Response metrics = given().when().get("/actuator/prometheus");
+
+		metrics.then().statusCode(200);
+		assertThat(metrics.getContentType()).contains("text/plain");
+		assertThat(metrics.asString()).contains("# TYPE wallet_operations_total counter",
+				"wallet_operations_total{outcome=\"SUCCESS\",type=\"DEPOSIT\"}");
 	}
 
 	@Test

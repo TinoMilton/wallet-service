@@ -40,6 +40,8 @@ logging:
 management:
   endpoint:
     health:
+      # Component details stay private: a probe's caller needs the status, not the internals.
+      show-details: never
       # Liveness and readiness groups for section 8 of the techspec; readiness includes the database.
       probes:
         enabled: true
@@ -47,8 +49,6 @@ management:
       group:
         readiness:
           include: readinessState,db
-          # An operator reading readiness sees which component failed, not just that something did.
-          show-details: always
   endpoints:
     web:
       exposure:
