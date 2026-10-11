@@ -11,12 +11,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.support.IntegrationTest;
 import com.recargapay.wallet.support.LedgerAssertions;
+import com.recargapay.wallet.support.TransferAssertions;
 import io.restassured.response.Response;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 class TransferTest extends IntegrationTest {
 
@@ -24,7 +24,7 @@ class TransferTest extends IntegrationTest {
 	private LedgerAssertions ledger;
 
 	@Autowired
-	private JdbcTemplate sql;
+	private TransferAssertions transfers;
 
 	@Test
 	@DisplayName("BR-08: a transfer debits the sender and credits the receiver equally")
@@ -110,13 +110,7 @@ class TransferTest extends IntegrationTest {
 		Response transferred = transfer(sender, receiver, "5.00");
 
 		transferred.then().statusCode(201);
-		UUID operationId = transferred.jsonPath().getUUID("operationId");
-		assertThat(sql.queryForObject("select count(*) from operation where id = ? and type = 'TRANSFER'",
-				Integer.class, operationId)).isEqualTo(1);
-		assertThat(sql.queryForObject("select count(*) from ledger_entry where operation_id = ?", Integer.class,
-				operationId)).isEqualTo(2);
-		assertThat(sql.queryForObject("select count(*) from outbox_event where aggregate_id = ? and event_type = ?",
-				Integer.class, operationId, "FundsTransferred")).isEqualTo(1);
+		transfers.assertOneTransferOperationWithTwoEntries(transferred);
 		ledger.assertEntry(sender, 2, "-5.00", "15.00");
 		ledger.assertEntry(receiver, 1, "5.00", "5.00");
 	}
@@ -161,7 +155,7 @@ class TransferTest extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("BR-04: a transfer with an invalid amount is rejected")
+	@DisplayName("BR-03: a transfer with a zero amount is rejected")
 	void invalidTransferAmountIsRejected() {
 		WalletId sender = aWalletWithBalance("10.00");
 		WalletId receiver = aWallet();

@@ -21,13 +21,9 @@ import com.recargapay.wallet.repository.OperationRepository;
 import com.recargapay.wallet.repository.OutboxEventRepository;
 import com.recargapay.wallet.repository.WalletRepository;
 import jakarta.persistence.EntityManager;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -176,14 +172,8 @@ public class LedgerService {
 
 	private Operation recordTransferOperation(WalletId from, WalletId to, Money amount, IdempotencyKey key,
 			Instant recordedAt) {
-		String request = OperationType.TRANSFER.name() + "\n" + from.value() + "\n" + to.value() + "\n" + amount;
-		try {
-			MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-			String fingerprint = HexFormat.of().formatHex(sha256.digest(request.getBytes(StandardCharsets.UTF_8)));
-			return saveOperation(OperationType.TRANSFER, key, fingerprint, recordedAt);
-		} catch (NoSuchAlgorithmException unavailable) {
-			throw new IllegalStateException("SHA-256 is unavailable", unavailable);
-		}
+		String fingerprint = fingerprints.forRequest(OperationType.TRANSFER, from, to, amount);
+		return saveOperation(OperationType.TRANSFER, key, fingerprint, recordedAt);
 	}
 
 	private Operation saveOperation(OperationType type, IdempotencyKey key, String fingerprint, Instant recordedAt) {

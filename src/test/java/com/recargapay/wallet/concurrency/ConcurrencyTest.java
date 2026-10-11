@@ -4,7 +4,7 @@ import static com.recargapay.wallet.support.ConcurrentCallers.runConcurrently;
 import static com.recargapay.wallet.support.LedgerActions.aWalletWithBalance;
 import static com.recargapay.wallet.support.LedgerActions.deposit;
 import static com.recargapay.wallet.support.LedgerActions.withdraw;
-import static com.recargapay.wallet.support.TransferActions.transfer;
+import static com.recargapay.wallet.support.TransferActions.opposingTransferForCaller;
 import static com.recargapay.wallet.support.WalletActions.aWallet;
 import static com.recargapay.wallet.support.WalletAssertions.assertBalance;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,7 +61,7 @@ class ConcurrencyTest extends IntegrationTest {
 		WalletId second = aWalletWithBalance("100.00");
 
 		List<Response> responses = runConcurrently(100,
-				caller -> caller < 50 ? transfer(first, second, "1.00") : transfer(second, first, "1.00"));
+				caller -> opposingTransferForCaller(first, second, "1.00", caller, 50));
 
 		assertThat(responses).hasSize(100).allSatisfy(response -> response.then().statusCode(201));
 		assertBalance(first, "100.00");

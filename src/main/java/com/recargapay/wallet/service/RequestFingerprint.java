@@ -14,6 +14,15 @@ public class RequestFingerprint {
 
 	public String forRequest(OperationType type, WalletId walletId, Money amount) {
 		String request = type.name() + "\n" + walletId.value() + "\n" + amount;
+		return sha256(request);
+	}
+
+	public String forRequest(OperationType type, WalletId from, WalletId to, Money amount) {
+		String request = type.name() + "\n" + from.value() + "\n" + to.value() + "\n" + amount;
+		return sha256(request);
+	}
+
+	private String sha256(String request) {
 		try {
 			MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 			return HexFormat.of().formatHex(sha256.digest(request.getBytes(StandardCharsets.UTF_8)));

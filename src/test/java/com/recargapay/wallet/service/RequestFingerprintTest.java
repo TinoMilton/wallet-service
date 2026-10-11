@@ -38,4 +38,22 @@ class RequestFingerprintTest {
 		assertThat(changedWallet).isNotEqualTo(original);
 		assertThat(changedAmount).isNotEqualTo(original);
 	}
+
+	@Test
+	@DisplayName("Transfer fingerprints include both wallet ids and the normalized amount")
+	void transferFingerprintDistinguishesBothWalletsAndAmount() {
+		WalletId receiver = new WalletId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+		WalletId another = new WalletId(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+		String original = fingerprints.forRequest(OperationType.TRANSFER, wallet, receiver, Money.of("1.0"));
+
+		String sameRequest = fingerprints.forRequest(OperationType.TRANSFER, wallet, receiver, Money.of("1.00"));
+		String changedSender = fingerprints.forRequest(OperationType.TRANSFER, another, receiver, Money.of("1.00"));
+		String changedReceiver = fingerprints.forRequest(OperationType.TRANSFER, wallet, another, Money.of("1.00"));
+		String changedAmount = fingerprints.forRequest(OperationType.TRANSFER, wallet, receiver, Money.of("2.00"));
+
+		assertThat(original).hasSize(64).isEqualTo(sameRequest);
+		assertThat(changedSender).isNotEqualTo(original);
+		assertThat(changedReceiver).isNotEqualTo(original);
+		assertThat(changedAmount).isNotEqualTo(original);
+	}
 }

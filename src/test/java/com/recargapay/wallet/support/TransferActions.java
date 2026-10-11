@@ -24,6 +24,11 @@ public final class TransferActions {
 		return request(from.value().toString(), to.value().toString(), amount, null);
 	}
 
+	public static Response opposingTransferForCaller(WalletId first, WalletId second, String amount, int caller,
+			int callersEachWay) {
+		return caller < callersEachWay ? transfer(first, second, amount) : transfer(second, first, amount);
+	}
+
 	private static Response request(String from, String to, String amount, String key) {
 		String body = "{\"fromWalletId\":\"" + from + "\",\"toWalletId\":\"" + to + "\",\"amount\":" + amount + "}";
 		var request = given().contentType(ContentType.JSON).body(body);
