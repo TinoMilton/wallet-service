@@ -152,7 +152,7 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 9.0 accepted and merged to main (fast-forward after rebase; one keep-both conflict in `application.yml`) — Droid `glm-5.3` `-r high`, no review planned; commits `3af28c6`, `aa35e0a`, `730607e`. Added `micrometer-registry-prometheus` (BOM-managed) by coordinator decision. Pool size 10, graceful shutdown 30s, health details hidden.
 - Stage 7 gate passed: `./mvnw verify` BUILD SUCCESS in 28.4s on the rebased head that is now main (`730607e`), 127 tests, 96.34% line / 87.50% branch, one Spring context. Worktrees and branches removed.
 - 10.0 accepted — Droid `glm-5.3` `-r high`; compose stack built on `eclipse-temurin:25` images and exercised with curl (all seven endpoints, a rejection, an idempotent replay, readiness, Prometheus, API docs), then torn down; README written; tech spec reconciled with the code; readability pass added the `RequestFingerprint` domain type; `./mvnw verify` BUILD SUCCESS, 127 tests, 96.39% line / 87.50% branch, ConcurrencyTest 5/5, commits `dee652b` and `cba395d`. Open, minor: metric names are registered with underscores in `OperationMetrics` and dots in `OutboxMetrics` (served output is identical).
-- All ten tasks accepted. Final independent gate dispatched to Droid `glm-5.3-flash`.
+- All ten tasks accepted. Final independent gate passed (Droid `glm-5.3-flash`, on `f652544`): `./mvnw verify` BUILD SUCCESS, 127 tests, 0 failures, 0 skipped; 96.39% line / 87.50% branch recomputed from `jacoco.csv`; every rule BR-01 to BR-29 has at least one test; no sleeps, disabled tests or mocks in `src/test`; `docker compose config` valid.
 
 ## Rules for Every Task
 
