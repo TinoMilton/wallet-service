@@ -13,7 +13,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 - [x] 7.0 Historical balance and ledger endpoint — [task-7.0-historical-balance-and-ledger.md](task-7.0-historical-balance-and-ledger.md)
 - [x] 8.0 Transactional outbox and publisher — [task-8.0-outbox.md](task-8.0-outbox.md)
 - [x] 9.0 Observability and operational readiness — [task-9.0-observability.md](task-9.0-observability.md)
-- [ ] 10.0 Packaging and documentation — [task-10.0-packaging-and-docs.md](task-10.0-packaging-and-docs.md)
+- [x] 10.0 Packaging and documentation — [task-10.0-packaging-and-docs.md](task-10.0-packaging-and-docs.md)
 
 ## Execution Plan for Agent Orchestration
 
@@ -151,7 +151,8 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 8.0 accepted and merged to main (fast-forward) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (money path confirmed intact; 10 fixes applied, mostly test independence); `./mvnw verify` BUILD SUCCESS on the branch, 113 tests, 96.18% line / 90.00% branch, ConcurrencyTest 5/5, commits `44ab63e` and `20a888f`. Publish delay 2s, batch 50, scheduling off in tests by property.
 - 9.0 accepted and merged to main (fast-forward after rebase; one keep-both conflict in `application.yml`) — Droid `glm-5.3` `-r high`, no review planned; commits `3af28c6`, `aa35e0a`, `730607e`. Added `micrometer-registry-prometheus` (BOM-managed) by coordinator decision. Pool size 10, graceful shutdown 30s, health details hidden.
 - Stage 7 gate passed: `./mvnw verify` BUILD SUCCESS in 28.4s on the rebased head that is now main (`730607e`), 127 tests, 96.34% line / 87.50% branch, one Spring context. Worktrees and branches removed.
-- 10.0 dispatched to Droid `glm-5.3` `-r high` (headless). Awaiting delivery.
+- 10.0 accepted — Droid `glm-5.3` `-r high`; compose stack built on `eclipse-temurin:25` images and exercised with curl (all seven endpoints, a rejection, an idempotent replay, readiness, Prometheus, API docs), then torn down; README written; tech spec reconciled with the code; readability pass added the `RequestFingerprint` domain type; `./mvnw verify` BUILD SUCCESS, 127 tests, 96.39% line / 87.50% branch, ConcurrencyTest 5/5, commits `dee652b` and `cba395d`. Open, minor: metric names are registered with underscores in `OperationMetrics` and dots in `OutboxMetrics` (served output is identical).
+- All ten tasks accepted. Final independent gate dispatched to Droid `glm-5.3-flash`.
 
 ## Rules for Every Task
 
