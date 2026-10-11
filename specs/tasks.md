@@ -11,8 +11,8 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 - [x] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
 - [x] 6.0 Idempotent replay — [task-6.0-idempotent-replay.md](task-6.0-idempotent-replay.md)
 - [x] 7.0 Historical balance and ledger endpoint — [task-7.0-historical-balance-and-ledger.md](task-7.0-historical-balance-and-ledger.md)
-- [ ] 8.0 Transactional outbox and publisher — [task-8.0-outbox.md](task-8.0-outbox.md)
-- [ ] 9.0 Observability and operational readiness — [task-9.0-observability.md](task-9.0-observability.md)
+- [x] 8.0 Transactional outbox and publisher — [task-8.0-outbox.md](task-8.0-outbox.md)
+- [x] 9.0 Observability and operational readiness — [task-9.0-observability.md](task-9.0-observability.md)
 - [ ] 10.0 Packaging and documentation — [task-10.0-packaging-and-docs.md](task-10.0-packaging-and-docs.md)
 
 ## Execution Plan for Agent Orchestration
@@ -148,7 +148,10 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 7.0 accepted and merged to main (fast-forward after rebase, no conflicts) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (1 blocker: nanosecond cutoff bound to a microsecond column, fixed with truncation and a regression test; 2 other fixes applied; BR-11 labels kept by coordinator decision), commits `f7deb8b` and `f69bef1`. Page size defaults to 20, capped at 100. Nothing open.
 - Stage 5 gate passed: `./mvnw verify` BUILD SUCCESS on the rebased head that is now main (`f69bef1`), 92 tests, 97.99% line / 92.42% branch. Worktrees and branches removed.
 - 6.0 accepted — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3` (replay, transaction boundaries and concurrency confirmed correct; 4 tests added); `./mvnw verify` BUILD SUCCESS, 102 tests, 97.70% line / 89.74% branch, ConcurrencyTest 10/10, commits `a53ba18` and `85e104f`. Decision: the operation row is inserted before the wallet lock; tech spec section 4 updated to match. Open, minor: `LedgerService.replay` takes the fingerprint as a bare `String`; left for the readability pass in 10.0.
-- Stage 7 dispatched in parallel, each in its own worktree and branch: 8.0 to Droid `glm-5.3` `-r high` (branch `task-8.0`, review by headless Codex), 9.0 to Droid `glm-5.3` `-r high` (branch `task-9.0`).
+- 8.0 accepted and merged to main (fast-forward) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (money path confirmed intact; 10 fixes applied, mostly test independence); `./mvnw verify` BUILD SUCCESS on the branch, 113 tests, 96.18% line / 90.00% branch, ConcurrencyTest 5/5, commits `44ab63e` and `20a888f`. Publish delay 2s, batch 50, scheduling off in tests by property.
+- 9.0 accepted and merged to main (fast-forward after rebase; one keep-both conflict in `application.yml`) — Droid `glm-5.3` `-r high`, no review planned; commits `3af28c6`, `aa35e0a`, `730607e`. Added `micrometer-registry-prometheus` (BOM-managed) by coordinator decision. Pool size 10, graceful shutdown 30s, health details hidden.
+- Stage 7 gate passed: `./mvnw verify` BUILD SUCCESS in 28.4s on the rebased head that is now main (`730607e`), 127 tests, 96.34% line / 87.50% branch, one Spring context. Worktrees and branches removed.
+- 10.0 dispatched to Droid `glm-5.3` `-r high` (headless). Awaiting delivery.
 
 ## Rules for Every Task
 
