@@ -1,0 +1,17 @@
+# Build output
+target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+.factory/
+
+# Local agent settings
+.claude/settings.local.json
+
+# OS noise
+.DS_Store

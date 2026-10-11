@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: wallet-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/wallet
+    username: wallet
+    password: wallet
+  jpa:
+    # No view rendering here, so keep the session open only for the service layer.
+    open-in-view: false
+    hibernate:
+      # Flyway is the only owner of the schema; Hibernate only checks it matches the entities.
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true
+
+management:
+  endpoint:
+    health:
+      # Liveness and readiness groups for section 8 of the techspec; readiness includes the database.
+      probes:
+        enabled: true
