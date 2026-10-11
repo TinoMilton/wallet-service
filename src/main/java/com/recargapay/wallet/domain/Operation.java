@@ -39,12 +39,16 @@ public class Operation {
 	protected Operation() {
 	}
 
-	public Operation(UUID id, OperationType type, IdempotencyKey idempotencyKey, String requestFingerprint,
+	/**
+	 * The fingerprint of what the operation asked for, compared when an idempotency
+	 * key arrives twice. The column stores the plain hex string.
+	 */
+	public Operation(UUID id, OperationType type, IdempotencyKey idempotencyKey, RequestFingerprint requestFingerprint,
 			Instant createdAt) {
 		this.id = Objects.requireNonNull(id, "operation id");
 		this.type = Objects.requireNonNull(type, "type");
 		this.idempotencyKey = Objects.requireNonNull(idempotencyKey, "idempotency key");
-		this.requestFingerprint = Objects.requireNonNull(requestFingerprint, "request fingerprint");
+		this.requestFingerprint = requestFingerprint.value();
 		this.createdAt = Objects.requireNonNull(createdAt, "created at");
 	}
 
@@ -57,7 +61,7 @@ public class Operation {
 		return type;
 	}
 
-	public String requestFingerprint() {
-		return requestFingerprint;
+	public RequestFingerprint requestFingerprint() {
+		return new RequestFingerprint(requestFingerprint);
 	}
 }

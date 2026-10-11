@@ -1,16 +1,16 @@
 package com.recargapay.wallet.api;
 
-import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
-import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.domain.exception.IdempotencyKeyReusedException;
+import com.recargapay.wallet.domain.exception.InsufficientFundsException;
 import com.recargapay.wallet.domain.exception.InvalidAmountException;
 import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.InvalidPageRequestException;
 import com.recargapay.wallet.domain.exception.InvalidTimestampException;
-import com.recargapay.wallet.domain.exception.InsufficientFundsException;
-import com.recargapay.wallet.domain.exception.IdempotencyKeyReusedException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
-import com.recargapay.wallet.domain.exception.WalletBusyException;
 import com.recargapay.wallet.domain.exception.SameWalletTransferException;
+import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
+import com.recargapay.wallet.domain.exception.WalletBusyException;
+import com.recargapay.wallet.domain.exception.WalletNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -97,6 +97,11 @@ public class GlobalExceptionHandler {
 				"the media type of the request body is not supported");
 	}
 
+	@ExceptionHandler(SameWalletTransferException.class)
+	public ProblemDetail sameWalletTransfer(SameWalletTransferException sameWallet) {
+		return problem(HttpStatus.BAD_REQUEST, "SAME_WALLET_TRANSFER", sameWallet.getMessage());
+	}
+
 	@ExceptionHandler(InvalidTimestampException.class)
 	public ProblemDetail invalidTimestamp(InvalidTimestampException invalid) {
 		return problem(HttpStatus.BAD_REQUEST, "INVALID_TIMESTAMP", invalid.getMessage());
@@ -119,10 +124,5 @@ public class GlobalExceptionHandler {
 		problem.setTitle(status.getReasonPhrase());
 		problem.setProperty("code", code);
 		return problem;
-	}
-
-	@ExceptionHandler(SameWalletTransferException.class)
-	public ProblemDetail sameWalletTransfer(SameWalletTransferException sameWallet) {
-		return problem(HttpStatus.BAD_REQUEST, "SAME_WALLET_TRANSFER", sameWallet.getMessage());
 	}
 }

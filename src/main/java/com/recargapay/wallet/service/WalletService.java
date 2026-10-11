@@ -21,8 +21,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Wallet creation and balance queries (techspec section 4). The balance on the
- * wallet row is the cache of the ledger; this service reads it, later tasks
- * will move money and keep it current.
+ * wallet row is the cache of the ledger: this service reads it, and the money
+ * operations in LedgerService keep it current.
  */
 @Service
 public class WalletService {

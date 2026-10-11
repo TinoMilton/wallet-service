@@ -9,6 +9,7 @@ import com.recargapay.wallet.domain.OperationId;
 import com.recargapay.wallet.domain.OperationResult;
 import com.recargapay.wallet.domain.OperationType;
 import com.recargapay.wallet.domain.OutboxEvent;
+import com.recargapay.wallet.domain.RequestFingerprint;
 import com.recargapay.wallet.domain.SignedAmount;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
@@ -45,12 +46,12 @@ public class LedgerService {
 	private final LedgerEntryRepository entries;
 	private final OutboxEventRepository events;
 	private final EventPayloads payloads;
-	private final RequestFingerprint fingerprints;
+	private final RequestFingerprints fingerprints;
 	private final Clock clock;
 
 	LedgerService(EntityManager entityManager, WalletRepository wallets, OperationRepository operations,
 			LedgerEntryRepository entries, OutboxEventRepository events, EventPayloads payloads,
-			RequestFingerprint fingerprints, Clock clock) {
+			RequestFingerprints fingerprints, Clock clock) {
 		this.entityManager = entityManager;
 		this.wallets = wallets;
 		this.operations = operations;
@@ -115,7 +116,7 @@ public class LedgerService {
 	}
 
 	@Transactional(readOnly = true)
-	public OperationResult replay(IdempotencyKey key, String fingerprint) {
+	public OperationResult replay(IdempotencyKey key, RequestFingerprint fingerprint) {
 		Operation operation = operations.findByIdempotencyKey(key)
 				.orElseThrow(() -> new IllegalStateException("Committed operation missing for idempotency key"));
 		checkFingerprint(operation, fingerprint);
@@ -125,7 +126,7 @@ public class LedgerService {
 				resultEntry.amountSigned().magnitude(), resultEntry.balanceAfter(), resultEntry.createdAt());
 	}
 
-	private void checkFingerprint(Operation operation, String fingerprint) {
+	private void checkFingerprint(Operation operation, RequestFingerprint fingerprint) {
 		if (!operation.requestFingerprint().equals(fingerprint)) {
 			throw new IdempotencyKeyReusedException();
 		}
@@ -207,11 +208,11 @@ public class LedgerService {
 	}
 
 	private Operation recordTransferOperation(WalletId from, WalletId to, Money amount, IdempotencyKey key) {
-		String fingerprint = fingerprints.forRequest(OperationType.TRANSFER, from, to, amount);
+		RequestFingerprint fingerprint = fingerprints.forRequest(OperationType.TRANSFER, from, to, amount);
 		return saveOperation(OperationType.TRANSFER, key, fingerprint);
 	}
 
-	private Operation saveOperation(OperationType type, IdempotencyKey key, String fingerprint) {
+	private Operation saveOperation(OperationType type, IdempotencyKey key, RequestFingerprint fingerprint) {
 		// Flush the unique key before locking wallets: a competing request can only
 		// wait on this operation, never hold a wallet lock while it waits.
 		return operations.saveAndFlush(new Operation(UUID.randomUUID(), type, key, fingerprint, clock.instant()));

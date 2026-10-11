@@ -11,6 +11,7 @@ import com.recargapay.wallet.domain.Operation;
 import com.recargapay.wallet.domain.OperationId;
 import com.recargapay.wallet.domain.OperationType;
 import com.recargapay.wallet.domain.OutboxEvent;
+import com.recargapay.wallet.domain.RequestFingerprint;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.repository.LedgerEntryRepository;
@@ -86,7 +87,7 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		Wallet wallet = wallets.saveAndFlush(new Wallet(walletId, walletId.value().toString(), RECORDED_AT));
 		UUID operationId = UUID.randomUUID();
 		Operation operation = operations.saveAndFlush(new Operation(operationId, OperationType.DEPOSIT,
-				new IdempotencyKey(UUID.randomUUID().toString()), "a".repeat(64), RECORDED_AT));
+				new IdempotencyKey(UUID.randomUUID().toString()), new RequestFingerprint("a".repeat(64)), RECORDED_AT));
 		UUID entryId = UUID.randomUUID();
 		entries.saveAndFlush(LedgerEntry.credit(entryId, operation, wallet, 1, Money.of("10.00"),
 				Balance.of(Money.of("10.00")), RECORDED_AT));
@@ -103,7 +104,7 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		UUID operationId = UUID.randomUUID();
 		Instant recordedAt = RECORDED_AT.plusSeconds(1);
 		Operation operation = operations.saveAndFlush(new Operation(operationId, OperationType.WITHDRAWAL,
-				new IdempotencyKey(UUID.randomUUID().toString()), "b".repeat(64), recordedAt));
+				new IdempotencyKey(UUID.randomUUID().toString()), new RequestFingerprint("b".repeat(64)), recordedAt));
 		UUID entryId = UUID.randomUUID();
 		entries.saveAndFlush(
 				LedgerEntry.debit(entryId, operation, wallet, 2, Money.of("10.00"), Balance.zero(), recordedAt));

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.Money;
 import com.recargapay.wallet.domain.OperationType;
-import com.recargapay.wallet.service.RequestFingerprint;
+import com.recargapay.wallet.service.RequestFingerprints;
 import io.restassured.response.Response;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -93,8 +93,8 @@ public class LedgerAssertions {
 		List<String> fingerprints = sql.query(
 				"select request_fingerprint from operation where id = ? and idempotency_key = ?",
 				(rs, row) -> rs.getString(1).trim(), operationId, key);
-		assertThat(fingerprints)
-				.containsExactly(new RequestFingerprint().forRequest(OperationType.DEPOSIT, wallet, Money.of(amount)));
+		assertThat(fingerprints).containsExactly(
+				new RequestFingerprints().forRequest(OperationType.DEPOSIT, wallet, Money.of(amount)).value());
 	}
 
 	private record Entry(BigDecimal amount, BigDecimal balance) {
