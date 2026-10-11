@@ -39,7 +39,16 @@ public class OutboxEvent {
 	protected OutboxEvent() {
 	}
 
-	public OutboxEvent(UUID id, UUID aggregateId, String eventType, String payload, Instant occurredAt) {
+	/**
+	 * One unpublished event about the money operation that caused it. The id is
+	 * meaningless beyond uniqueness, so it is generated here.
+	 */
+	public static OutboxEvent forOperation(OperationId operationId, String eventType, String payload,
+			Instant occurredAt) {
+		return new OutboxEvent(UUID.randomUUID(), operationId.value(), eventType, payload, occurredAt);
+	}
+
+	private OutboxEvent(UUID id, UUID aggregateId, String eventType, String payload, Instant occurredAt) {
 		this.id = Objects.requireNonNull(id, "event id");
 		this.aggregateType = "OPERATION";
 		this.aggregateId = Objects.requireNonNull(aggregateId, "aggregate id");

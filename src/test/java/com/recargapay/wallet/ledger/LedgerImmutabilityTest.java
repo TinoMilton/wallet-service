@@ -8,6 +8,7 @@ import com.recargapay.wallet.domain.IdempotencyKey;
 import com.recargapay.wallet.domain.LedgerEntry;
 import com.recargapay.wallet.domain.Money;
 import com.recargapay.wallet.domain.Operation;
+import com.recargapay.wallet.domain.OperationId;
 import com.recargapay.wallet.domain.OperationType;
 import com.recargapay.wallet.domain.OutboxEvent;
 import com.recargapay.wallet.domain.Wallet;
@@ -89,7 +90,8 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		UUID entryId = UUID.randomUUID();
 		entries.saveAndFlush(LedgerEntry.credit(entryId, operation, wallet, 1, Money.of("10.00"),
 				Balance.of(Money.of("10.00")), RECORDED_AT));
-		events.saveAndFlush(new OutboxEvent(UUID.randomUUID(), operationId, "FundsDeposited", "{}", RECORDED_AT));
+		events.saveAndFlush(
+				OutboxEvent.forOperation(new OperationId(operationId), "FundsDeposited", "{}", RECORDED_AT));
 		sql.update("UPDATE wallet SET balance = 10.00 WHERE id = ?", walletId.value());
 		return entryId;
 	}
@@ -105,7 +107,7 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		UUID entryId = UUID.randomUUID();
 		entries.saveAndFlush(
 				LedgerEntry.debit(entryId, operation, wallet, 2, Money.of("10.00"), Balance.zero(), recordedAt));
-		events.saveAndFlush(new OutboxEvent(UUID.randomUUID(), operationId, "FundsWithdrawn", "{}", recordedAt));
+		events.saveAndFlush(OutboxEvent.forOperation(new OperationId(operationId), "FundsWithdrawn", "{}", recordedAt));
 		sql.update("UPDATE wallet SET balance = 0.00 WHERE id = ?", walletUuid);
 		return entryId;
 	}

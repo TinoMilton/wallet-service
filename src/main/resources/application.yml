@@ -27,5 +27,7 @@ management:
 wallet:
   outbox:
     # The publisher relays pending events on a fixed delay, in occurred_at order, in bounded batches.
+    # Scheduling can be switched off wholesale; tests do that and drive publishing runs directly.
+    scheduling-enabled: true
     publish-delay: 2s
     batch-size: 50

@@ -7,35 +7,37 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.recargapay.wallet.domain.OutboxEvent;
 import com.recargapay.wallet.domain.WalletId;
+import com.recargapay.wallet.repository.OutboxEventRepository;
 import com.recargapay.wallet.support.IntegrationTest;
 import com.recargapay.wallet.support.OutboxAssertions;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.response.Response;
+import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The publisher tests drive a publishing run directly instead of waiting for
  * the schedule (techspec 9.3: no sleeps). The relay is a hand-written test
- * double of an interface the outbox owns at its boundary: it records every
- * event it sees, can be told to fail for one operation, and still writes the
- * real structured log line. Only this class imports it, so the rest of the
- * suite keeps the single cached application context.
+ * double of the outbox boundary: it implements EventRelay directly, records
+ * every event it relays, and can be told which events to refuse. The publisher
+ * under test is the real class wired to that double, run inside a transaction
+ * because the hand-built instance has no transactional proxy. Nothing here
+ * customises the context, so the whole suite keeps its single cached
+ * application context.
  */
-@Import(OutboxPublisherTest.RelayConfiguration.class)
 class OutboxPublisherTest extends IntegrationTest {
 
 	@Autowired
-	private OutboxPublisher publisher;
+	private OutboxEventRepository events;
 
 	@Autowired
 	private OutboxAssertions outbox;
@@ -44,99 +46,138 @@ class OutboxPublisherTest extends IntegrationTest {
 	private MeterRegistry meters;
 
 	@Autowired
-	private RecordingRelay relay;
+	private Clock clock;
 
-	@BeforeEach
-	void resetTheRecordingRelay() {
-		relay.reset();
-	}
+	@Autowired
+	private TransactionTemplate transactions;
+
+	@Value("${wallet.outbox.batch-size}")
+	private int batchSize;
+
+	private final RecordingRelay relay = new RecordingRelay();
 
 	@Test
 	@DisplayName("A publishing run marks unpublished events as published, in occurred_at order")
 	void runPublishesEventsInOccurredAtOrder() {
-		// Instants earlier than every other test's events, so this test's two events
-		// come
-		// first in the batch whatever the shared database already holds.
-		theTimeIs("1700-01-01T00:00:00Z");
 		WalletId wallet = aWallet();
+		theTimeIs("2026-10-11T10:00:00Z");
 		Response firstDeposit = deposit(wallet, "1.00");
-		theTimeIs("1700-01-01T00:00:01Z");
+		theTimeIs("2026-10-11T10:00:01Z");
 		Response secondDeposit = deposit(wallet, "2.00");
-		theTimeIs("1700-01-01T00:00:10Z");
+		theTimeIs("2026-10-11T10:00:10Z");
+		UUID first = firstDeposit.jsonPath().getUUID("operationId");
+		UUID second = secondDeposit.jsonPath().getUUID("operationId");
 
-		publisher.publishPending();
+		aPublishingRun();
 
-		assertThat(relay.relayedOperationIds()).startsWith(firstDeposit.jsonPath().getUUID("operationId"),
-				secondDeposit.jsonPath().getUUID("operationId"));
-		outbox.assertPublishedAt(firstDeposit.jsonPath().getUUID("operationId"), "1700-01-01T00:00:10Z");
-		outbox.assertPublishedAt(secondDeposit.jsonPath().getUUID("operationId"), "1700-01-01T00:00:10Z");
+		assertThat(relay.relayedOrderAmong(first, second)).containsExactly(first, second);
+		outbox.assertPublishedAt(first, "2026-10-11T10:00:10Z");
+		outbox.assertPublishedAt(second, "2026-10-11T10:00:10Z");
 	}
 
 	@Test
 	@DisplayName("An event whose relay fails stays unpublished and does not stop the batch")
 	void failedRelayLeavesItsEventUnpublished() {
-		theTimeIs("1801-01-01T00:00:00Z");
 		WalletId wallet = aWallet();
 		Response failing = deposit(wallet, "1.00");
 		Response published = deposit(wallet, "2.00");
-
 		relay.failFor(failing.jsonPath().getUUID("operationId"));
-		publisher.publishPending();
+
+		aPublishingRun();
 
 		outbox.assertEventUnpublished(failing.jsonPath().getUUID("operationId"));
-		outbox.assertPublishedAt(published.jsonPath().getUUID("operationId"), "1801-01-01T00:00:00Z");
+		outbox.assertPublishedAt(published.jsonPath().getUUID("operationId"), "2026-10-11T00:00:00Z");
 	}
 
 	@Test
-	@DisplayName("Both outbox gauges read zero when every event has been published")
-	void gaugesReadZeroWhenEveryEventIsPublished() {
+	@DisplayName("A publishing run makes the unpublished gauge stop counting the test's event")
+	void publishingRunStopsCountingTheTestsEvent() {
 		WalletId wallet = aWallet();
-		deposit(wallet, "1.00").then().statusCode(201);
+		Response deposited = deposit(wallet, "1.00");
+		deposited.then().statusCode(201);
+		double unpublishedWithTheEvent = unpublishedGauge();
 
-		// One run relays the whole shared backlog, because the test batch size covers
-		// the suite.
-		publisher.publishPending();
+		relay.succeedOnly(deposited.jsonPath().getUUID("operationId"));
+		aPublishingRun();
 
-		assertThat(meters.get("wallet.outbox.unpublished").gauge().value()).isZero();
-		assertThat(meters.get("wallet.outbox.lag.seconds").gauge().value()).isZero();
+		// The run published only this test's event; the backlog it refused is
+		// still counted.
+		assertThat(unpublishedGauge()).isEqualTo(unpublishedWithTheEvent - 1.0);
 	}
 
-	/** Supplies the hand-written relay double for this class only. */
-	@TestConfiguration(proxyBeanMethods = false)
-	static class RelayConfiguration {
+	@Test
+	@DisplayName("wallet_outbox_lag_seconds is zero while the oldest unpublished event just occurred")
+	void lagGaugeIsZeroWhileTheOldestEventJustOccurred() {
+		// An instant earlier than every other test's event, so this test's event
+		// is the oldest one.
+		theTimeIs("1700-01-01T00:00:00Z");
+		WalletId wallet = aWallet();
+		Response deposited = deposit(wallet, "1.00");
+		deposited.then().statusCode(201);
 
-		@Bean
-		@Primary
-		RecordingRelay recordingRelay() {
-			return new RecordingRelay();
-		}
+		assertThat(lagGauge()).isZero();
+
+		// Publish the event, so no older unpublished event is left for other
+		// tests' lag assertions.
+		relay.succeedOnly(deposited.jsonPath().getUUID("operationId"));
+		aPublishingRun();
 	}
 
-	static final class RecordingRelay extends LoggingEventRelay {
+	private void aPublishingRun() {
+		OutboxPublisher publisher = new OutboxPublisher(events, relay, clock, batchSize);
+		transactions.executeWithoutResult(untouched -> publisher.publishPending());
+	}
+
+	private double unpublishedGauge() {
+		return meters.get("wallet.outbox.unpublished").gauge().value();
+	}
+
+	private double lagGauge() {
+		return meters.get("wallet.outbox.lag.seconds").gauge().value();
+	}
+
+	/**
+	 * The hand-written test double of the outbox boundary (techspec 9.3: no project
+	 * class is mocked). It records the events it relays and refuses the ones a test
+	 * tells it to.
+	 */
+	static final class RecordingRelay implements EventRelay {
 
 		private final List<UUID> relayedOperationIds = new ArrayList<>();
-		private UUID failForOperationId;
+		private UUID failingOperationId;
+		private Set<UUID> succeedingOnlyOperationIds;
 
 		@Override
 		public void relay(OutboxEvent event) {
-			if (event.aggregateId().equals(failForOperationId)) {
-				throw new IllegalStateException("relay refused the event of operation " + failForOperationId);
+			if (isRefused(event)) {
+				throw new IllegalStateException("relay refused the event of operation " + event.aggregateId());
 			}
 			relayedOperationIds.add(event.aggregateId());
-			super.relay(event);
 		}
 
 		void failFor(UUID operationId) {
-			this.failForOperationId = operationId;
+			this.failingOperationId = operationId;
 		}
 
-		void reset() {
-			relayedOperationIds.clear();
-			failForOperationId = null;
+		/** Refuses every other event, so a run publishes only this test's events. */
+		void succeedOnly(UUID... operationIds) {
+			this.succeedingOnlyOperationIds = Set.copyOf(Arrays.asList(operationIds));
 		}
 
-		List<UUID> relayedOperationIds() {
-			return List.copyOf(relayedOperationIds);
+		/**
+		 * The order the relay saw the given operations in, ignoring the batch's other
+		 * events.
+		 */
+		List<UUID> relayedOrderAmong(UUID... operationIds) {
+			List<UUID> wanted = List.of(operationIds);
+			return relayedOperationIds.stream().filter(wanted::contains).toList();
+		}
+
+		private boolean isRefused(OutboxEvent event) {
+			if (event.aggregateId().equals(failingOperationId)) {
+				return true;
+			}
+			return succeedingOnlyOperationIds != null && !succeedingOnlyOperationIds.contains(event.aggregateId());
 		}
 	}
 }

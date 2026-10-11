@@ -27,11 +27,7 @@ public final class Money {
 		return new Money(new BigDecimal(amount));
 	}
 
-	/**
-	 * The decimal amount; public because the outbox payload writes it as a plain
-	 * JSON number.
-	 */
-	public BigDecimal decimalValue() {
+	BigDecimal decimalValue() {
 		return amount;
 	}
 

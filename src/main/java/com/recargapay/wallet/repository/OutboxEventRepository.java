@@ -10,11 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
 	/**
-	 * The next batch to publish, in occurred_at order. The row lock lets competing
-	 * instances skip each other's events instead of waiting for them.
+	 * The next batch to publish, in occurred_at order with the id as a tie-breaker
+	 * so the order is deterministic. The row lock lets competing instances skip
+	 * each other's events instead of waiting for them.
 	 */
 	@Query(value = "select * from outbox_event where published_at is null "
-			+ "order by occurred_at asc limit :batchSize for update skip locked", nativeQuery = true)
+			+ "order by occurred_at asc, id asc limit :batchSize for update skip locked", nativeQuery = true)
 	List<OutboxEvent> lockNextUnpublishedBatch(int batchSize);
 
 	/**

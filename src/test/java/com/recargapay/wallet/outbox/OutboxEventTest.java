@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.support.IntegrationTest;
+import com.recargapay.wallet.support.LedgerAssertions;
 import com.recargapay.wallet.support.OutboxAssertions;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.response.Response;
@@ -25,6 +26,9 @@ class OutboxEventTest extends IntegrationTest {
 
 	@Autowired
 	private OutboxAssertions outbox;
+
+	@Autowired
+	private LedgerAssertions ledger;
 
 	@Autowired
 	private MeterRegistry meters;
@@ -47,18 +51,31 @@ class OutboxEventTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("BR-28: a successful withdrawal emits exactly one FundsWithdrawn event")
+	void withdrawalEmitsExactlyOneEvent() {
+		WalletId wallet = aWalletWithBalance("100.00");
+
+		Response withdrawn = withdraw(wallet, "40.00");
+
+		outbox.assertOneEventFor(withdrawn.jsonPath().getUUID("operationId"), "FundsWithdrawn");
+	}
+
+	@Test
 	@DisplayName("BR-28: a successful transfer emits exactly one event")
 	void transferEmitsExactlyOneEvent() {
 		WalletId sender = aWalletWithBalance("100.00");
 		WalletId receiver = aWallet();
+		theTimeIs("2026-10-11T10:00:00Z");
 
 		Response transferred = transfer(sender, receiver, "40.00");
 
 		UUID operationId = transferred.jsonPath().getUUID("operationId");
 		outbox.assertOneEventFor(operationId, "FundsTransferred");
+		outbox.assertPayloadCarries(operationId, "operationId", operationId.toString());
 		outbox.assertPayloadCarries(operationId, "fromWalletId", sender.value().toString());
 		outbox.assertPayloadCarries(operationId, "toWalletId", receiver.value().toString());
 		outbox.assertPayloadCarries(operationId, "amount", "40.00");
+		outbox.assertPayloadCarries(operationId, "occurredAt", "2026-10-11T10:00:00Z");
 	}
 
 	@Test
@@ -70,6 +87,7 @@ class OutboxEventTest extends IntegrationTest {
 
 		assertRejected(rejected, 422, "INSUFFICIENT_FUNDS");
 		assertBalance(wallet, "100.00");
+		ledger.assertLedgerEntryCount(wallet, 1);
 		outbox.assertNoEventOfTypeFor("FundsWithdrawn", wallet);
 	}
 

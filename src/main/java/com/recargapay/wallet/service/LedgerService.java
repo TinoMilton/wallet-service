@@ -251,7 +251,7 @@ public class LedgerService {
 		// Invariant 4: one event per successful operation, written with
 		// the entries in the same transaction. A rejected operation never
 		// gets here; a replay only reads.
-		events.save(new OutboxEvent(UUID.randomUUID(), operation.id(), event.eventType(), payloads.asJson(event),
+		events.save(OutboxEvent.forOperation(new OperationId(operation.id()), event.eventType(), payloads.asJson(event),
 				event.occurredAt()));
 	}
 
