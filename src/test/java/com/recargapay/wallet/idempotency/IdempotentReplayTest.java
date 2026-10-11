@@ -108,6 +108,69 @@ class IdempotentReplayTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("BR-22: reusing a deposit key on another wallet is rejected without changing either wallet")
+	void differentWalletIsRejected() {
+		WalletId originalWallet = aWallet();
+		WalletId otherWallet = aWallet();
+		String key = UUID.randomUUID().toString();
+		depositWithKey(originalWallet, "10.00", key).then().statusCode(201);
+
+		Response rejected = depositWithKey(otherWallet, "10.00", key);
+
+		assertRejected(rejected, 422, "IDEMPOTENCY_KEY_REUSED");
+		assertBalance(originalWallet, "10.00");
+		assertBalance(otherWallet, "0.00");
+		ledger.assertLedgerEntryCount(originalWallet, 1);
+		ledger.assertLedgerEntryCount(otherWallet, 0);
+		idempotency.assertOperationCount(key, 1);
+		idempotency.assertEntryCount(key, 1);
+		ledger.assertAuditInvariant(originalWallet);
+		ledger.assertAuditInvariant(otherWallet);
+	}
+
+	@Test
+	@DisplayName("BR-22: reusing a deposit key for a withdrawal is rejected without changing the wallet")
+	void differentOperationTypeIsRejected() {
+		WalletId wallet = aWallet();
+		String key = UUID.randomUUID().toString();
+		depositWithKey(wallet, "10.00", key).then().statusCode(201);
+
+		Response rejected = withdrawWithKey(wallet, "10.00", key);
+
+		assertRejected(rejected, 422, "IDEMPOTENCY_KEY_REUSED");
+		assertBalance(wallet, "10.00");
+		ledger.assertLedgerEntryCount(wallet, 1);
+		idempotency.assertOperationCount(key, 1);
+		idempotency.assertEntryCount(key, 1);
+		ledger.assertAuditInvariant(wallet);
+	}
+
+	@Test
+	@DisplayName("BR-22: reusing a transfer key with another receiver is rejected without moving money again")
+	void differentTransferReceiverIsRejected() {
+		WalletId sender = aWalletWithBalance("20.00");
+		WalletId originalReceiver = aWallet();
+		WalletId otherReceiver = aWallet();
+		String key = UUID.randomUUID().toString();
+		transferWithKey(sender, originalReceiver, "5.00", key).then().statusCode(201);
+
+		Response rejected = transferWithKey(sender, otherReceiver, "5.00", key);
+
+		assertRejected(rejected, 422, "IDEMPOTENCY_KEY_REUSED");
+		assertBalance(sender, "15.00");
+		assertBalance(originalReceiver, "5.00");
+		assertBalance(otherReceiver, "0.00");
+		ledger.assertLedgerEntryCount(sender, 2);
+		ledger.assertLedgerEntryCount(originalReceiver, 1);
+		ledger.assertLedgerEntryCount(otherReceiver, 0);
+		idempotency.assertOperationCount(key, 1);
+		idempotency.assertEntryCount(key, 2);
+		ledger.assertAuditInvariant(sender);
+		ledger.assertAuditInvariant(originalReceiver);
+		ledger.assertAuditInvariant(otherReceiver);
+	}
+
+	@Test
 	@DisplayName("BR-23: a rejected withdrawal leaves the key free for a funded retry")
 	void rejectedWithdrawalCanBeRetried() {
 		WalletId wallet = aWallet();
@@ -127,6 +190,34 @@ class IdempotentReplayTest extends IntegrationTest {
 		idempotency.assertOperationCount(key, 1);
 		idempotency.assertEntryCount(key, 1);
 		ledger.assertAuditInvariant(wallet);
+	}
+
+	@Test
+	@DisplayName("BR-23: a rejected transfer leaves the key free for a funded retry")
+	void rejectedTransferCanBeRetried() {
+		WalletId sender = aWallet();
+		WalletId receiver = aWallet();
+		String key = UUID.randomUUID().toString();
+		Response rejected = transferWithKey(sender, receiver, "5.00", key);
+		assertRejected(rejected, 422, "INSUFFICIENT_FUNDS");
+		assertBalance(sender, "0.00");
+		assertBalance(receiver, "0.00");
+		ledger.assertLedgerEntryCount(sender, 0);
+		ledger.assertLedgerEntryCount(receiver, 0);
+		idempotency.assertOperationCount(key, 0);
+		deposit(sender, "10.00").then().statusCode(201);
+
+		Response retry = transferWithKey(sender, receiver, "5.00", key);
+
+		retry.then().statusCode(201);
+		assertBalance(sender, "5.00");
+		assertBalance(receiver, "5.00");
+		ledger.assertLedgerEntryCount(sender, 2);
+		ledger.assertLedgerEntryCount(receiver, 1);
+		idempotency.assertOperationCount(key, 1);
+		idempotency.assertEntryCount(key, 2);
+		ledger.assertAuditInvariant(sender);
+		ledger.assertAuditInvariant(receiver);
 	}
 
 	private void assertSameResult(Response original, Response replay) {

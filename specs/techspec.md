@@ -70,13 +70,15 @@ All components are new; the repository contains no code yet.
 
 1. The controller validates the body and the `Idempotency-Key` header, and builds a `Money`.
 2. `IdempotentCommandExecutor` calls `LedgerService` inside one `@Transactional` boundary.
-3. `LedgerService` sets `lock_timeout` for the transaction and locks the wallet row or rows with `SELECT ... FOR UPDATE`, in ascending `wallet_id` order.
-4. It inserts the `operation` row with the idempotency key and request fingerprint.
+3. `LedgerService` inserts and flushes the `operation` row with the idempotency key and request fingerprint, before taking any lock.
+4. It sets `lock_timeout` for the transaction and locks the wallet row or rows with `SELECT ... FOR UPDATE`, in ascending `wallet_id` order.
 5. For each wallet it checks funds, computes the next `seq` and `balance_after`, inserts a `ledger_entry` and updates `wallet.balance`.
 6. It inserts one `outbox_event`.
 7. The transaction commits and the controller returns 201.
 
-If step 4 fails on the unique constraint, the transaction rolls back and the executor handles the replay in a new transaction (section 7).
+If step 3 fails on the unique constraint, the transaction rolls back and the executor handles the replay in a new transaction (section 7).
+
+The operation row is inserted before the wallet lock on purpose. A duplicate request then waits on the unique index while holding no wallet lock, so it cannot deadlock with the original or block other requests on that wallet, and its wait is not subject to the wallet lock timeout. When the original commits, every waiting duplicate fails as a duplicate at once and replays.
 
 ### Read Flow
 
