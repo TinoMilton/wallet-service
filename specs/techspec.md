@@ -137,6 +137,7 @@ INDEX outbox_event (occurred_at) WHERE published_at IS NULL
 ### Queries
 
 - **Current balance:** `SELECT balance FROM wallet WHERE id = ?`
+- **Cutoff precision:** PostgreSQL stores microseconds, so T is truncated to microseconds before the comparison; a T with sub-microsecond digits never rounds up to include a later entry.
 - **Historical balance at T:** `SELECT balance_after FROM ledger_entry WHERE wallet_id = ? AND created_at <= ? ORDER BY seq DESC LIMIT 1`. No row, for a wallet that existed at T, means zero.
 
 ## 6. API Design
@@ -325,7 +326,7 @@ Each test carries its rule id in its display name, so the mapping between this t
 | BR-08 | A transfer debits the sender and credits the receiver by the same amount. | Integration |
 | BR-09 | A transfer greater than the sender's balance is rejected (422) and neither wallet changes. | Integration |
 | BR-10 | A transfer from a wallet to itself is rejected (400). | Integration |
-| BR-11 | Any operation on an unknown wallet is rejected (404); for a transfer, on either side. | Integration |
+| BR-11 | Any request for an unknown wallet, read or write, is rejected (404); for a transfer, on either side. | Integration |
 | BR-12 | The current balance equals the balance after the most recent operation. | Integration |
 | BR-13 | The historical balance at T is the balance after the last operation at or before T, with T inclusive. | Integration |
 | BR-14 | The historical balance of an existing wallet with no operations up to T is zero. | Integration |

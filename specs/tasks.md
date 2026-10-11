@@ -8,7 +8,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 - [x] 2.0 Database schema and domain model — [task-2.0-schema-and-domain-model.md](task-2.0-schema-and-domain-model.md)
 - [x] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
 - [x] 4.0 Deposit and withdrawal — [task-4.0-deposit-and-withdrawal.md](task-4.0-deposit-and-withdrawal.md)
-- [ ] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
+- [x] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
 - [ ] 6.0 Idempotent replay — [task-6.0-idempotent-replay.md](task-6.0-idempotent-replay.md)
 - [ ] 7.0 Historical balance and ledger endpoint — [task-7.0-historical-balance-and-ledger.md](task-7.0-historical-balance-and-ledger.md)
 - [ ] 8.0 Transactional outbox and publisher — [task-8.0-outbox.md](task-8.0-outbox.md)
@@ -144,7 +144,8 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 3.0 accepted — Droid `glm-5.3` `-r high`, reviewed by headless Codex (2 blockers and 8 pattern fixes, all applied); `./mvnw verify` BUILD SUCCESS in 11.7s, 35 tests, 98.40% line / 94.44% branch, commits `36b955b` and `2cdac46`. Test helpers are now small classes by concern in `support/` (`WalletActions`, `WalletAssertions`, `TestClock`, `TestDatabase`), used by static import. Open, minor: `LedgerImmutabilityTest` still has a harmless `@DirtiesContext`; task 4.0 removes it.
 - Codex via Orca is blocked at startup by its update prompt (0.157.0 → 0.162.1); Orca will not send input to a blocked agent prompt. The user must update Codex or dismiss the prompt. Until then critical tasks use the second choice, Droid `gpt-6-sol`.
 - 4.0 accepted — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3` (money path confirmed correct; 6 quality fixes applied); `./mvnw verify` BUILD SUCCESS, 58 tests, 97.82% line / 92.50% branch, ConcurrencyTest 10/10 then 5/5 consecutive passes, commits `8bdc61f` and `00f2036`. Finding: the JPA lock-timeout hint is ignored for positive values on PostgreSQL, so `SET LOCAL lock_timeout = '2s'` is used. `OperationId` domain type added. Nothing open.
-- Stage 5 dispatched in parallel, each in its own worktree and branch: 5.0 to Droid `gpt-6-sol` `-r high` (branch `task-5.0`), 7.0 to Droid `glm-5.3` `-r high` (branch `task-7.0`).
+- 5.0 accepted and merged to main (fast-forward) — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3` (locking, atomicity and arithmetic confirmed correct; 5 fixes applied); `./mvnw verify` BUILD SUCCESS on the branch, 97.64% line / 90.38% branch, ConcurrencyTest 10/10 then 5/5, commits `2553381` and `cf8430e`. Nothing open.
+- 7.0 implemented on branch `task-7.0` by Droid `glm-5.3` `-r high` (commit `21f63bf`), reviewed by headless Codex: 1 blocker (nanosecond cutoff bound to a microsecond column) and 3 fixes sent back to the same session, together with the rebase onto main.
 
 ## Rules for Every Task
 
