@@ -42,7 +42,7 @@ Basis for the choice (2026-10-07; redo when Droid's model list changes): multipl
 
 - Headless Droid and Codex run **outside the Orca supervised Run**: there is no `worker_done`. The result is the final summary in the output file (ask in the spec: "print up to 10 lines..."), and the proof is the verification command. Questions do not reach the coordinator, so the spec must say what to do for each foreseeable doubt ("if you need a new migration or dependency, stop and describe it").
 - `--auto medium` is the ceiling. Never `--auto high` and never `--skip-permissions-unsafe`.
-- The Codex `workspace-write` sandbox does not open ports. **Anything that needs Docker, including every Testcontainers integration test and `docker compose`, goes to Droid.** Codex keeps code, unit tests and compilation.
+- The headless Codex `workspace-write` sandbox cannot reach the Docker socket or open ports (probed 2026-10-11). **Anything that needs Docker, including every Testcontainers integration test and `docker compose`, goes to Droid or to a Codex worker started through Orca**, which does reach Docker. Headless Codex keeps read-only review, and code that needs only unit tests and compilation.
 - Operating limit: up to three active workers, counting Orca and headless together.
 - The requested model does not prove the model used. In Orca, compare `launch.requested` with `launch.effective`; headless, the model is given explicitly with `-m`.
 

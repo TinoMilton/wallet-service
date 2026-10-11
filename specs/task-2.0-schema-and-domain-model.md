@@ -24,14 +24,14 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 2.1 Write the migration for the four tables, constraints and indexes
-- [ ] 2.2 Write the migration for the ledger immutability trigger
-- [ ] 2.3 Implement `Money` with its validation
-- [ ] 2.4 Implement `WalletId` and `IdempotencyKey`
-- [ ] 2.5 Implement the entities `Wallet`, `Operation`, `LedgerEntry` and `OutboxEvent`
-- [ ] 2.6 Implement the four repositories
-- [ ] 2.7 Configure Jackson for amounts
-- [ ] 2.8 Write the tests for BR-03, BR-04 and BR-18
+- [x] 2.1 Write the migration for the four tables, constraints and indexes
+- [x] 2.2 Write the migration for the ledger immutability trigger
+- [x] 2.3 Implement `Money` with its validation
+- [x] 2.4 Implement `WalletId` and `IdempotencyKey`
+- [x] 2.5 Implement the entities `Wallet`, `Operation`, `LedgerEntry` and `OutboxEvent`
+- [x] 2.6 Implement the four repositories
+- [x] 2.7 Configure Jackson for amounts
+- [x] 2.8 Write the tests for BR-03, BR-04 and BR-18
 
 ## Implementation Details
 
@@ -49,8 +49,8 @@ None. The project has no `.claude/skills` directory.
 
 ## Task Tests
 
-- [ ] Unit tests: `Money` — BR-03 (zero, negative), BR-04 (three decimals rejected, not rounded), scale normalisation, value comparison
-- [ ] Integration tests: BR-18 — a direct SQL `UPDATE` and a direct SQL `DELETE` on `ledger_entry` are each rejected
+- [x] Unit tests: `Money` — BR-03 (zero, negative), BR-04 (three decimals rejected, not rounded), scale normalisation, value comparison
+- [x] Integration tests: BR-18 — a direct SQL `UPDATE` and a direct SQL `DELETE` on `ledger_entry` are each rejected
 - [ ] E2E tests: not applicable
 
 <critical>ALWAYS CREATE AND RUN THE TASK'S TESTS BEFORE CONSIDERING IT FINISHED</critical>

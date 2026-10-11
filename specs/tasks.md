@@ -4,7 +4,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 
 ## Tasks
 
-- [ ] 1.0 Project scaffold and build tooling — [task-1.0-project-scaffold.md](task-1.0-project-scaffold.md)
+- [x] 1.0 Project scaffold and build tooling — [task-1.0-project-scaffold.md](task-1.0-project-scaffold.md)
 - [ ] 2.0 Database schema and domain model — [task-2.0-schema-and-domain-model.md](task-2.0-schema-and-domain-model.md)
 - [ ] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
 - [ ] 4.0 Deposit and withdrawal — [task-4.0-deposit-and-withdrawal.md](task-4.0-deposit-and-withdrawal.md)
@@ -90,17 +90,17 @@ The generic rules for agents, models, dispatch specs and worker lifecycle are in
 
 ### Agent and Model per Task
 
-Assigned from the routing table in `docs/orchestration.md` section 2. One constraint shapes the whole table: the Codex sandbox cannot open ports, so it cannot run Testcontainers, and every task here is verified by `./mvnw verify` against a real PostgreSQL. Codex therefore cannot deliver an implementation task with evidence. Critical code goes to the table's second choice, Droid `gpt-6-sol`, and Codex works as the read-only reviewer of GLM-written code.
+Assigned from the routing table in `docs/orchestration.md` section 2. Every task here is verified by `./mvnw verify` against a real PostgreSQL in Testcontainers, so an implementer must be able to reach Docker. Probed on 2026-10-11: headless Codex (`codex exec -s workspace-write`) is denied the Docker socket, while a Codex worker started through Orca (`worker-start --agent codex`) reaches it. Codex therefore implements only as a supervised Orca worker, and headless Codex is used only for read-only review.
 
 | Task | Kind | Implementer | Independent review (read-only) |
 |---|---|---|---|
 | 1.0 Scaffold | New logic (tooling) | Droid `glm-5.3` `-r high` | — |
 | 2.0 Schema and domain model | Critical: schema, money, migration | Droid `gpt-6-sol` `-r high` | Droid `glm-5.3` |
 | 3.0 Create wallet and balance | New logic; sets the patterns later tasks copy | Droid `glm-5.3` `-r high` | Codex |
-| 4.0 Deposit and withdrawal | Critical: money, concurrency | Droid `gpt-6-sol` `-r high` | Droid `glm-5.3` |
-| 5.0 Transfer | Critical: money, concurrency | Droid `gpt-6-sol` `-r high` | Droid `glm-5.3` |
+| 4.0 Deposit and withdrawal | Critical: money, concurrency | Codex (Orca worker) | Droid `glm-5.3` |
+| 5.0 Transfer | Critical: money, concurrency | Codex (Orca worker) | Droid `glm-5.3` |
 | 7.0 Historical balance and ledger | New logic | Droid `glm-5.3` `-r high` | Codex |
-| 6.0 Idempotent replay | Critical: money, concurrency | Droid `gpt-6-sol` `-r high` | Droid `glm-5.3` |
+| 6.0 Idempotent replay | Critical: money, concurrency | Codex (Orca worker) | Droid `glm-5.3` |
 | 8.0 Outbox | New logic | Droid `glm-5.3` `-r high` | Codex |
 | 9.0 Observability | New logic | Droid `glm-5.3` `-r high` | — |
 | 10.0 Packaging and docs | New logic and documentation | Droid `glm-5.3` `-r high` | — |
@@ -138,7 +138,8 @@ If 8.0 is cut, stage 7 is 9.0 alone.
 The coordinator records one line per accepted delivery here: task, agent and model used, verification result, and anything left open. Workers do not write to this section.
 
 - Environment (2026-10-11): only JDK 26.0.2 is installed locally, not JDK 25. The build targets Java 25 (`maven.compiler.release=25`) and runs on JDK 26; the Docker image in task 10.0 uses a JDK 25 runtime.
-- 1.0 dispatched to Droid `glm-5.3` `-r high` (headless). Awaiting delivery.
+- 1.0 accepted — Droid `glm-5.3` `-r high`; `./mvnw verify` BUILD SUCCESS, commit `65f26b8`. Spring Boot 4.1.1, Spotless 3.10.4, JaCoCo 0.8.15, Testcontainers 2.0.5. Nothing open.
+- 2.0 dispatched to Droid `gpt-6-sol` `-r high` (headless). Awaiting delivery; review by Droid `glm-5.3` follows.
 
 ## Rules for Every Task
 
