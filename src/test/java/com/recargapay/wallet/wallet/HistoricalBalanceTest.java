@@ -76,6 +76,26 @@ class HistoricalBalanceTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("BR-13: a sub-microsecond cutoff below a stored entry excludes that entry")
+	void aSubMicrosecondCutoffBelowAStoredEntryExcludesThatEntry() {
+		// given
+		theTimeIs("2026-10-11T09:00:00Z");
+		WalletId wallet = aWallet();
+		theTimeIs("2026-10-11T10:00:00Z");
+		deposit(wallet, "10.00").then().statusCode(201);
+		// the ledger advances one microsecond when the clock has not moved, so the
+		// second entry is stored exactly at 10:00:00.000001
+		deposit(wallet, "5.00").then().statusCode(201);
+		theTimeIs("2026-10-11T11:00:00Z");
+
+		// when
+		Response balance = readBalanceAt(wallet, "2026-10-11T10:00:00.000000999Z");
+
+		// then
+		assertBalanceAt(balance, "10.00");
+	}
+
+	@Test
 	@DisplayName("BR-14: the balance of an existing wallet with no operations up to the instant is zero")
 	void balanceOfAWalletWithNoOperationsUpToTheInstantIsZero() {
 		// given

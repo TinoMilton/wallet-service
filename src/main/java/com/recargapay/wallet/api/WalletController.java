@@ -16,6 +16,7 @@ import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
 import com.recargapay.wallet.domain.exception.InvalidAmountException;
 import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
+import com.recargapay.wallet.domain.exception.InvalidPageRequestException;
 import com.recargapay.wallet.domain.exception.InvalidTimestampException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.service.LedgerService;
@@ -27,6 +28,7 @@ import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +50,9 @@ public class WalletController {
 	 * caller that pages until the end still sees every entry.
 	 */
 	private static final int MAXIMUM_PAGE_SIZE = 100;
+
+	/** The page size the audit endpoint returns when the caller asks for none. */
+	private static final int DEFAULT_PAGE_SIZE = 20;
 
 	private final WalletService walletService;
 	private final LedgerService ledgerService;
@@ -83,10 +88,11 @@ public class WalletController {
 
 	@GetMapping("/{walletId}/entries")
 	public LedgerEntriesResponse entries(@PathVariable String walletId,
-			@RequestParam(name = "page", defaultValue = "0") int page,
-			@RequestParam(name = "size", defaultValue = "20") int size) {
+			@RequestParam(name = "page", required = false) String rawPage,
+			@RequestParam(name = "size", required = false) String rawSize) {
 		WalletId requestedWallet = readWalletId(walletId);
-		Page<LedgerEntry> ledger = walletService.entries(requestedWallet, PageRequest.of(page, cappedPageSize(size)));
+		Pageable paging = readPaging(rawPage, rawSize);
+		Page<LedgerEntry> ledger = walletService.entries(requestedWallet, paging);
 		return LedgerEntriesResponse.from(requestedWallet, ledger);
 	}
 
@@ -123,6 +129,29 @@ public class WalletController {
 			return Instant.parse(rawAt);
 		} catch (DateTimeParseException invalidTimestamp) {
 			throw new InvalidTimestampException("the at parameter must be an ISO-8601 instant with an offset");
+		}
+	}
+
+	/**
+	 * The paging parameters are read as they arrive so that a value the endpoint
+	 * cannot honour, unparsable or out of range, is a bad request rather than a
+	 * binding failure surfacing as a server error.
+	 */
+	private static Pageable readPaging(String rawPage, String rawSize) {
+		int page = rawPage == null ? 0 : thePagingNumber("page", rawPage);
+		int size = rawSize == null ? DEFAULT_PAGE_SIZE : thePagingNumber("size", rawSize);
+		if (page < 0 || size < 1) {
+			throw new InvalidPageRequestException("page must be 0 or more and size must be 1 or more");
+		}
+		return PageRequest.of(page, cappedPageSize(size));
+	}
+
+	/** One paging parameter as a number; an unparsable value is a bad request. */
+	private static int thePagingNumber(String name, String rawValue) {
+		try {
+			return Integer.parseInt(rawValue);
+		} catch (NumberFormatException notANumber) {
+			throw new InvalidPageRequestException("the " + name + " parameter must be a number");
 		}
 	}
 

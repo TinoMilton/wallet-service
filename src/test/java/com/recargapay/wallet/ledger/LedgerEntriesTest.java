@@ -1,6 +1,7 @@
 package com.recargapay.wallet.ledger;
 
 import static com.recargapay.wallet.support.HistoryActions.readEntries;
+import static com.recargapay.wallet.support.HistoryActions.readEntriesWithPaging;
 import static com.recargapay.wallet.support.HistoryAssertions.assertEntry;
 import static com.recargapay.wallet.support.HistoryAssertions.assertEntryCount;
 import static com.recargapay.wallet.support.HistoryAssertions.assertPageMetadata;
@@ -119,6 +120,58 @@ class LedgerEntriesTest extends IntegrationTest {
 		// then
 		assertPageMetadata(page, 0, 100, 0);
 		assertEntryCount(page, 0);
+	}
+
+	@Test
+	@DisplayName("a negative page is rejected with 400")
+	void aNegativePageIsRejected() {
+		// given
+		WalletId wallet = aWallet();
+
+		// when
+		Response rejected = readEntriesWithPaging(wallet, "-1", "2");
+
+		// then
+		assertRejected(rejected, 400, "INVALID_REQUEST");
+	}
+
+	@Test
+	@DisplayName("a page size below one is rejected with 400")
+	void aPageSizeBelowOneIsRejected() {
+		// given
+		WalletId wallet = aWallet();
+
+		// when
+		Response rejected = readEntriesWithPaging(wallet, "0", "0");
+
+		// then
+		assertRejected(rejected, 400, "INVALID_REQUEST");
+	}
+
+	@Test
+	@DisplayName("a non-numeric page is rejected with 400")
+	void aNonNumericPageIsRejected() {
+		// given
+		WalletId wallet = aWallet();
+
+		// when
+		Response rejected = readEntriesWithPaging(wallet, "abc", "2");
+
+		// then
+		assertRejected(rejected, 400, "INVALID_REQUEST");
+	}
+
+	@Test
+	@DisplayName("a non-numeric page size is rejected with 400")
+	void aNonNumericPageSizeIsRejected() {
+		// given
+		WalletId wallet = aWallet();
+
+		// when
+		Response rejected = readEntriesWithPaging(wallet, "0", "abc");
+
+		// then
+		assertRejected(rejected, 400, "INVALID_REQUEST");
 	}
 
 	@Test

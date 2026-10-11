@@ -30,4 +30,13 @@ public final class HistoryActions {
 		return given().queryParams("page", page, "size", size).when().get("/api/v1/wallets/{walletId}/entries",
 				wallet.value());
 	}
+
+	/**
+	 * Reads the wallet's ledger with the paging parameters exactly as the caller
+	 * sends them, for values the endpoint may have to reject.
+	 */
+	public static Response readEntriesWithPaging(WalletId wallet, String page, String size) {
+		return given().queryParam("page", page).queryParam("size", size).when()
+				.get("/api/v1/wallets/{walletId}/entries", wallet.value());
+	}
 }

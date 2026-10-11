@@ -11,6 +11,7 @@ import com.recargapay.wallet.repository.LedgerEntryRepository;
 import com.recargapay.wallet.repository.WalletRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -69,14 +70,26 @@ public class WalletService {
 	 * (BR-15).
 	 */
 	public Balance balanceAt(WalletId walletId, Instant at) {
-		if (at.isAfter(clock.instant())) {
+		Instant cutoff = atMicrosecondPrecision(at);
+		if (cutoff.isAfter(clock.instant())) {
 			throw new InvalidTimestampException("the at parameter is in the future");
 		}
 		Wallet wallet = wallets.findById(walletId).orElseThrow(() -> new WalletNotFoundException(walletId));
-		if (at.isBefore(wallet.createdAt())) {
+		if (cutoff.isBefore(wallet.createdAt())) {
 			throw new WalletNotFoundException(walletId);
 		}
-		return ledgerEntries.lastEntryAtOrBefore(walletId, at).map(LedgerEntry::balanceAfter).orElseGet(Balance::zero);
+		return ledgerEntries.lastEntryAtOrBefore(walletId, cutoff).map(LedgerEntry::balanceAfter)
+				.orElseGet(Balance::zero);
+	}
+
+	/**
+	 * PostgreSQL rounds a nanosecond instant to its microsecond timestamps: a
+	 * cutoff one nanosecond below a stored microsecond would round up to it and
+	 * wrongly include that entry (BR-13). Truncating first keeps the future check,
+	 * the creation check and the ledger query all at the stored precision.
+	 */
+	private static Instant atMicrosecondPrecision(Instant at) {
+		return at.truncatedTo(ChronoUnit.MICROS);
 	}
 
 	/** The wallet's ledger, newest first, one page at a time, for audit. */
