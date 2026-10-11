@@ -1,7 +1,7 @@
 package com.recargapay.wallet.api.dto;
 
-import com.recargapay.wallet.domain.Money;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
-public record MoneyRequest(@NotNull Money amount) {
+public record MoneyRequest(@NotNull BigDecimal amount) {
 }

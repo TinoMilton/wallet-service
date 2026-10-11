@@ -11,7 +11,7 @@ public record MoneyOperationResponse(UUID operationId, OperationType type, UUID 
 		Instant createdAt) {
 
 	public static MoneyOperationResponse from(OperationResult result) {
-		return new MoneyOperationResponse(result.operationId(), result.type(), result.walletId().value(),
+		return new MoneyOperationResponse(result.operationId().value(), result.type(), result.walletId().value(),
 				result.amount(), result.balance(), result.createdAt());
 	}
 }

@@ -7,9 +7,12 @@ import com.recargapay.wallet.api.dto.MoneyOperationResponse;
 import com.recargapay.wallet.api.dto.MoneyRequest;
 import com.recargapay.wallet.domain.Balance;
 import com.recargapay.wallet.domain.IdempotencyKey;
+import com.recargapay.wallet.domain.Money;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.domain.exception.InvalidAmountException;
+import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.service.LedgerService;
 import com.recargapay.wallet.service.WalletService;
@@ -59,7 +62,7 @@ public class WalletController {
 	public MoneyOperationResponse deposit(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
 			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
-				.from(ledgerService.deposit(readWalletId(walletId), request.amount(), readIdempotencyKey(rawKey)));
+				.from(ledgerService.deposit(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
 	}
 
 	@PostMapping("/{walletId}/withdrawals")
@@ -67,7 +70,15 @@ public class WalletController {
 	public MoneyOperationResponse withdraw(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
 			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
-				.from(ledgerService.withdraw(readWalletId(walletId), request.amount(), readIdempotencyKey(rawKey)));
+				.from(ledgerService.withdraw(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
+	}
+
+	private static Money readAmount(MoneyRequest request) {
+		try {
+			return Money.of(request.amount().toPlainString());
+		} catch (IllegalArgumentException invalidAmount) {
+			throw new InvalidAmountException(invalidAmount);
+		}
 	}
 
 	private static IdempotencyKey readIdempotencyKey(String rawKey) {
@@ -75,7 +86,7 @@ public class WalletController {
 			throw new MissingIdempotencyKeyException();
 		}
 		if (rawKey.length() > 128) {
-			throw new IllegalArgumentException("Idempotency-Key must be at most 128 characters");
+			throw new InvalidIdempotencyKeyException();
 		}
 		return new IdempotencyKey(rawKey);
 	}

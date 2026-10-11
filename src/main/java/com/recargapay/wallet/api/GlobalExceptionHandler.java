@@ -2,6 +2,8 @@ package com.recargapay.wallet.api;
 
 import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.domain.exception.InvalidAmountException;
+import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.InsufficientFundsException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
@@ -49,8 +51,13 @@ public class GlobalExceptionHandler {
 		return problem(HttpStatus.BAD_REQUEST, "MISSING_IDEMPOTENCY_KEY", missingKey.getMessage());
 	}
 
-	@ExceptionHandler(IllegalArgumentException.class)
-	public ProblemDetail invalidArgument(IllegalArgumentException invalid) {
+	@ExceptionHandler(InvalidAmountException.class)
+	public ProblemDetail invalidAmount(InvalidAmountException invalid) {
+		return problem(HttpStatus.BAD_REQUEST, "INVALID_AMOUNT", invalid.getMessage());
+	}
+
+	@ExceptionHandler(InvalidIdempotencyKeyException.class)
+	public ProblemDetail invalidIdempotencyKey(InvalidIdempotencyKeyException invalid) {
 		return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", invalid.getMessage());
 	}
 
@@ -62,12 +69,6 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ProblemDetail unreadableBody(HttpMessageNotReadableException unreadableBody) {
-		for (Throwable cause = unreadableBody; cause != null; cause = cause.getCause()) {
-			if (cause instanceof IllegalArgumentException invalid && invalid.getMessage() != null
-					&& invalid.getMessage().startsWith("Amount must")) {
-				return problem(HttpStatus.BAD_REQUEST, "INVALID_AMOUNT", invalid.getMessage());
-			}
-		}
 		return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "the request body is missing or malformed");
 	}
 

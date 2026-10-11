@@ -75,6 +75,18 @@ class DepositTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("BR-17: entries with the same clock instant have increasing timestamps in sequence order")
+	void entriesWithUnchangedClockKeepTimeOrder() {
+		WalletId wallet = aWallet();
+		deposit(wallet, "1.00").then().statusCode(201);
+
+		Response second = deposit(wallet, "1.00");
+
+		second.then().statusCode(201);
+		ledger.assertRecordedTimeIncreasesWithSequence(wallet);
+	}
+
+	@Test
 	@DisplayName("BR-19: cached balance, latest ledger balance and sum of entries agree")
 	void ledgerReconcilesWithWallet() {
 		WalletId wallet = aWallet();
@@ -86,7 +98,7 @@ class DepositTest extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("BR-17: an entry records the clock instant under the lock")
+	@DisplayName("BR-17: an entry records the clock instant when it follows an earlier entry")
 	void entryRecordsClockInstant() {
 		WalletId wallet = aWallet();
 		theTimeIs("2026-10-11T10:00:00Z");

@@ -81,6 +81,13 @@ public class LedgerAssertions {
 		assertThat(recordedAt.toInstant()).isEqualTo(Instant.parse(instant));
 	}
 
+	public void assertRecordedTimeIncreasesWithSequence(WalletId wallet) {
+		List<Instant> recordedTimes = sql.query("select created_at from ledger_entry where wallet_id = ? order by seq",
+				(rs, row) -> rs.getObject(1, OffsetDateTime.class).toInstant(), wallet.value());
+		assertThat(recordedTimes).hasSize(2);
+		assertThat(recordedTimes.get(1)).isAfter(recordedTimes.get(0));
+	}
+
 	public void assertStoredRequest(Response response, WalletId wallet, String key, String amount) {
 		UUID operationId = response.jsonPath().getUUID("operationId");
 		List<String> fingerprints = sql.query(
