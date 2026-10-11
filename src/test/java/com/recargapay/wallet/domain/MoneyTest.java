@@ -56,9 +56,66 @@ class MoneyTest {
 		Money whole = Money.of("10");
 		Money cents = Money.of("10.00");
 
-		int comparison = whole.compareTo(cents);
+		boolean equal = whole.equals(cents);
 
-		assertThat(comparison).isZero();
+		assertThat(equal).isTrue();
+		assertThat(whole.hashCode()).isEqualTo(cents.hashCode());
+	}
+
+	@Test
+	@DisplayName("Amounts of different values do not compare equal")
+	void differentAmountsAreNotEqual() {
+		Money first = Money.of("10.00");
+		Money second = Money.of("10.01");
+
+		boolean equal = first.equals(second);
+
+		assertThat(equal).isFalse();
+	}
+
+	@Test
+	@DisplayName("An amount does not compare equal to another type")
+	void amountDoesNotEqualAnotherType() {
+		Money amount = Money.of("10.00");
+		String text = "10.00";
+
+		boolean equal = amount.equals(text);
+
+		assertThat(equal).isFalse();
+	}
+
+	@Test
+	@DisplayName("Balances of the same value compare equal")
+	void balancesCompareByValue() {
+		Balance whole = Balance.of(Money.of("10"));
+		Balance cents = Balance.of(Money.of("10.00"));
+
+		boolean equal = whole.equals(cents);
+
+		assertThat(equal).isTrue();
+		assertThat(whole.hashCode()).isEqualTo(cents.hashCode());
+	}
+
+	@Test
+	@DisplayName("Balances of different values do not compare equal")
+	void differentBalancesAreNotEqual() {
+		Balance first = Balance.zero();
+		Balance second = Balance.of(Money.of("10.00"));
+
+		boolean equal = first.equals(second);
+
+		assertThat(equal).isFalse();
+	}
+
+	@Test
+	@DisplayName("A balance does not compare equal to another type")
+	void balanceDoesNotEqualAnotherType() {
+		Balance balance = Balance.zero();
+		String text = "0.00";
+
+		boolean equal = balance.equals(text);
+
+		assertThat(equal).isFalse();
 	}
 
 	@Test
@@ -74,7 +131,7 @@ class MoneyTest {
 	}
 
 	@Test
-	@DisplayName("BR-04: JSON amounts are written as numbers with two decimal places")
+	@DisplayName("JSON amounts are written as numbers with two decimal places")
 	void jsonAmountWritesTwoDecimals() {
 		JsonMapper.Builder builder = JsonMapper.builder();
 		new JacksonConfig().moneyJson().customize(builder);

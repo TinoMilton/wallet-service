@@ -60,6 +60,7 @@ All components are new; the repository contains no code yet.
 | `WalletService` | Wallet creation and balance queries (current and historical) |
 | `LedgerService` | Deposit, withdrawal and transfer: locks wallets, checks funds, appends entries, updates the cached balance, writes the outbox event |
 | `Money` | Value object for amounts: scale 2, positive, never rounded |
+| `Balance` | Value object for what a wallet holds: scale 2, zero or positive. Separate from `Money` because an operation amount can never be zero and a balance can |
 | `Clock` (injected) | The only source of time in the application, so tests can control it |
 | `WalletRepository`, `OperationRepository`, `LedgerEntryRepository`, `OutboxEventRepository` | Spring Data JPA repositories |
 | `OutboxPublisher` | Scheduled job that relays unpublished events and marks them published |

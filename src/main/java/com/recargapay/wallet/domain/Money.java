@@ -8,7 +8,7 @@ import java.util.Objects;
  * A strictly positive BRL amount. Balances and signed ledger deltas have
  * different invariants.
  */
-public final class Money implements Comparable<Money> {
+public final class Money {
 
 	private final BigDecimal amount;
 
@@ -32,8 +32,13 @@ public final class Money implements Comparable<Money> {
 	}
 
 	@Override
-	public int compareTo(Money other) {
-		return amount.compareTo(other.amount);
+	public boolean equals(Object other) {
+		return other instanceof Money money && amount.equals(money.amount);
+	}
+
+	@Override
+	public int hashCode() {
+		return amount.hashCode();
 	}
 
 	@Override

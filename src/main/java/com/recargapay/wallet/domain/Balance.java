@@ -21,7 +21,21 @@ public final class Balance {
 		return new Balance(amount.decimalValue());
 	}
 
+	static Balance fromDatabase(BigDecimal amount) {
+		return new Balance(amount);
+	}
+
 	BigDecimal decimalValue() {
 		return amount;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return other instanceof Balance balance && amount.equals(balance.amount);
+	}
+
+	@Override
+	public int hashCode() {
+		return amount.hashCode();
 	}
 }

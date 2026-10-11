@@ -17,6 +17,8 @@ import com.recargapay.wallet.repository.OperationRepository;
 import com.recargapay.wallet.repository.OutboxEventRepository;
 import com.recargapay.wallet.repository.WalletRepository;
 import com.recargapay.wallet.support.IntegrationTest;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,9 @@ class LedgerImmutabilityTest extends IntegrationTest {
 	@Autowired
 	private JdbcTemplate sql;
 
+	@PersistenceContext
+	private EntityManager entityManager;
+
 	@Test
 	@DisplayName("BR-18: direct SQL cannot update a ledger entry")
 	void updateIsRejected() {
@@ -58,6 +63,9 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		assertThat(failure).isInstanceOf(DataAccessException.class)
 				.hasMessageContaining("ledger entries cannot be updated");
 		assertThat(amountOf(entryId)).isEqualTo("10.00");
+		entityManager.clear();
+		assertThat(entries.findById(entryId).orElseThrow().balanceAfter()).isEqualTo(Balance.of(Money.of("10.00")));
+		assertThat(walletBalanceOf(entryId)).isEqualTo(Balance.of(Money.of("10.00")));
 	}
 
 	@Test
@@ -70,6 +78,9 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		assertThat(failure).isInstanceOf(DataAccessException.class)
 				.hasMessageContaining("ledger entries cannot be updated");
 		assertThat(amountOf(entryId)).isEqualTo("-10.00");
+		entityManager.clear();
+		assertThat(entries.findById(entryId).orElseThrow().balanceAfter()).isEqualTo(Balance.zero());
+		assertThat(walletBalanceOf(entryId)).isEqualTo(Balance.zero());
 	}
 
 	private UUID recordedDeposit() {
@@ -79,7 +90,7 @@ class LedgerImmutabilityTest extends IntegrationTest {
 		Operation operation = operations.saveAndFlush(new Operation(operationId, OperationType.DEPOSIT,
 				new IdempotencyKey(UUID.randomUUID().toString()), "a".repeat(64), RECORDED_AT));
 		UUID entryId = UUID.randomUUID();
-		entries.saveAndFlush(new LedgerEntry(entryId, operation, wallet, 1, Money.of("10.00"), false,
+		entries.saveAndFlush(LedgerEntry.credit(entryId, operation, wallet, 1, Money.of("10.00"),
 				Balance.of(Money.of("10.00")), RECORDED_AT));
 		events.saveAndFlush(new OutboxEvent(UUID.randomUUID(), operationId, "FundsDeposited", "{}", RECORDED_AT));
 		sql.update("UPDATE wallet SET balance = 10.00 WHERE id = ?", walletId.value());
@@ -96,7 +107,7 @@ class LedgerImmutabilityTest extends IntegrationTest {
 				new IdempotencyKey(UUID.randomUUID().toString()), "b".repeat(64), recordedAt));
 		UUID entryId = UUID.randomUUID();
 		entries.saveAndFlush(
-				new LedgerEntry(entryId, operation, wallet, 2, Money.of("10.00"), true, Balance.zero(), recordedAt));
+				LedgerEntry.debit(entryId, operation, wallet, 2, Money.of("10.00"), Balance.zero(), recordedAt));
 		events.saveAndFlush(new OutboxEvent(UUID.randomUUID(), operationId, "FundsWithdrawn", "{}", recordedAt));
 		sql.update("UPDATE wallet SET balance = 0.00 WHERE id = ?", walletUuid);
 		return entryId;
@@ -105,5 +116,10 @@ class LedgerImmutabilityTest extends IntegrationTest {
 	private String amountOf(UUID entryId) {
 		return sql.queryForObject("SELECT amount_signed FROM ledger_entry WHERE id = ?",
 				(result, row) -> result.getBigDecimal(1).toPlainString(), entryId);
+	}
+
+	private Balance walletBalanceOf(UUID entryId) {
+		UUID walletId = sql.queryForObject("SELECT wallet_id FROM ledger_entry WHERE id = ?", UUID.class, entryId);
+		return wallets.findById(new WalletId(walletId)).orElseThrow().balance();
 	}
 }
