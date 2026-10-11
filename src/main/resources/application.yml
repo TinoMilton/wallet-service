@@ -5,6 +5,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/wallet
     username: wallet
     password: wallet
+    hikari:
+      # A bounded pool with a short wait, so a slow database cannot exhaust the
+      # service (techspec section 8, "Availability"). The timeout is in
+      # milliseconds, HikariCP's unit for it.
+      maximum-pool-size: 10
+      connection-timeout: 5000
   jpa:
     # No view rendering here, so keep the session open only for the service layer.
     open-in-view: false
@@ -13,9 +19,23 @@ spring:
       ddl-auto: validate
   flyway:
     locations: classpath:db/migration
+  lifecycle:
+    # Graceful shutdown: in-flight requests get this long to complete before the
+    # process gives up on them (techspec section 8, "Availability").
+    timeout-per-shutdown-phase: 30s
   threads:
     virtual:
       enabled: true
+
+server:
+  shutdown: graceful
+
+logging:
+  structured:
+    format:
+      # One JSON line per log event (techspec section 8), rendered by Spring
+      # Boot's built-in logstash formatter; no extra dependency.
+      console: logstash
 
 management:
   endpoint:
@@ -23,6 +43,16 @@ management:
       # Liveness and readiness groups for section 8 of the techspec; readiness includes the database.
       probes:
         enabled: true
+      # Readiness says the service can serve: the application is up and its database reachable.
+      group:
+        readiness:
+          include: readinessState,db
+          # An operator reading readiness sees which component failed, not just that something did.
+          show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
 
 wallet:
   outbox:

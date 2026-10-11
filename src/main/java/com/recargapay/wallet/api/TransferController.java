@@ -10,6 +10,12 @@ import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
 import com.recargapay.wallet.service.IdempotentCommandExecutor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -22,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/transfers")
+@Tag(name = "Transfers", description = "Money movement between two wallets")
 public class TransferController {
 
 	private final IdempotentCommandExecutor commands;
@@ -32,8 +39,15 @@ public class TransferController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Transfer money between two wallets")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "The transfer was applied", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidTransferRequest"),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound"),
+			@ApiResponse(responseCode = "422", ref = "#/components/responses/RejectedOperation"),
+			@ApiResponse(responseCode = "503", ref = "#/components/responses/WalletBusy")})
 	public TransferResponse transfer(@Valid @RequestBody TransferRequest request,
-			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
+			@Parameter(name = "Idempotency-Key", in = ParameterIn.HEADER, required = true, description = "Client-generated key; repeating a request with the same key returns the original result") @RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		WalletId from = readWalletId(request.fromWalletId());
 		WalletId to = readWalletId(request.toWalletId());
 		return TransferResponse.from(commands.transfer(from, to, readAmount(request), readKey(rawKey)), to);

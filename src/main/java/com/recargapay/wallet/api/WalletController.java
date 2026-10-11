@@ -21,6 +21,12 @@ import com.recargapay.wallet.domain.exception.InvalidTimestampException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.service.IdempotentCommandExecutor;
 import com.recargapay.wallet.service.WalletService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,6 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/wallets")
+@Tag(name = "Wallets", description = "Wallet creation, balances, the audit ledger and money movement in one wallet")
 public class WalletController {
 
 	/**
@@ -66,12 +73,22 @@ public class WalletController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Create a wallet for a user")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "The wallet was created", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidWalletBody"),
+			@ApiResponse(responseCode = "409", ref = "#/components/responses/WalletAlreadyExists")})
 	public CreateWalletResponse create(@Valid @RequestBody CreateWalletRequest request) {
 		Wallet wallet = walletService.create(request.userId());
 		return new CreateWalletResponse(wallet.id().value(), wallet.userId(), wallet.balance(), wallet.createdAt());
 	}
 
 	@GetMapping(value = "/{walletId}/balance", params = "!at")
+	@Operation(summary = "Read the balance of a wallet, now or at a past instant")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "The balance at the requested instant", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidTimestamp"),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound")})
 	public CurrentBalanceResponse currentBalance(@PathVariable String walletId) {
 		WalletId requestedWallet = readWalletId(walletId);
 		Balance balance = walletService.currentBalance(requestedWallet);
@@ -79,7 +96,13 @@ public class WalletController {
 	}
 
 	@GetMapping(value = "/{walletId}/balance", params = "at")
-	public HistoricalBalanceResponse balanceAt(@PathVariable String walletId, @RequestParam("at") String rawAt) {
+	@Operation(summary = "Read the balance of a wallet, now or at a past instant")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "The balance at the requested instant", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidTimestamp"),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound")})
+	public HistoricalBalanceResponse balanceAt(@PathVariable String walletId,
+			@Parameter(description = "The instant to read the balance at, ISO-8601 with an offset; omitted means now") @RequestParam("at") String rawAt) {
 		WalletId requestedWallet = readWalletId(walletId);
 		Instant at = readTimestamp(rawAt);
 		Balance balance = walletService.balanceAt(requestedWallet, at);
@@ -87,9 +110,13 @@ public class WalletController {
 	}
 
 	@GetMapping("/{walletId}/entries")
+	@Operation(summary = "Read a wallet's ledger, newest first")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "One page of the ledger", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound")})
 	public LedgerEntriesResponse entries(@PathVariable String walletId,
-			@RequestParam(name = "page", required = false) String rawPage,
-			@RequestParam(name = "size", required = false) String rawSize) {
+			@Parameter(description = "The page to return, numbered from 0") @RequestParam(name = "page", required = false) String rawPage,
+			@Parameter(description = "Entries per page, at most 100") @RequestParam(name = "size", required = false) String rawSize) {
 		WalletId requestedWallet = readWalletId(walletId);
 		Pageable paging = readPaging(rawPage, rawSize);
 		Page<LedgerEntry> ledger = walletService.entries(requestedWallet, paging);
@@ -98,16 +125,30 @@ public class WalletController {
 
 	@PostMapping("/{walletId}/deposits")
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Deposit into a wallet")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "The deposit was applied", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidMoneyRequest"),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound"),
+			@ApiResponse(responseCode = "422", ref = "#/components/responses/RejectedOperation"),
+			@ApiResponse(responseCode = "503", ref = "#/components/responses/WalletBusy")})
 	public MoneyOperationResponse deposit(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
-			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
+			@Parameter(name = "Idempotency-Key", in = ParameterIn.HEADER, required = true, description = "Client-generated key; repeating a request with the same key returns the original result") @RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
 				.from(commands.deposit(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
 	}
 
 	@PostMapping("/{walletId}/withdrawals")
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Withdraw from a wallet")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "The withdrawal was applied", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidMoneyRequest"),
+			@ApiResponse(responseCode = "404", ref = "#/components/responses/WalletNotFound"),
+			@ApiResponse(responseCode = "422", ref = "#/components/responses/RejectedOperation"),
+			@ApiResponse(responseCode = "503", ref = "#/components/responses/WalletBusy")})
 	public MoneyOperationResponse withdraw(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
-			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
+			@Parameter(name = "Idempotency-Key", in = ParameterIn.HEADER, required = true, description = "Client-generated key; repeating a request with the same key returns the original result") @RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
 				.from(commands.withdraw(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
 	}

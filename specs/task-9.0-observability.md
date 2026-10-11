@@ -29,11 +29,11 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 9.1 Record operation counters and timers by type and outcome
-- [ ] 9.2 Configure JSON logging and the request-id filter
-- [ ] 9.3 Enable probes, graceful shutdown and explicit pool settings
-- [ ] 9.4 Annotate the API for springdoc
-- [ ] 9.5 Write the tests
+- [x] 9.1 Record operation counters and timers by type and outcome
+- [x] 9.2 Configure JSON logging and the request-id filter
+- [x] 9.3 Enable probes, graceful shutdown and explicit pool settings
+- [x] 9.4 Annotate the API for springdoc
+- [x] 9.5 Write the tests
 
 ## Implementation Details
 
@@ -52,11 +52,11 @@ None. The project has no `.claude/skills` directory.
 
 - [ ] Unit tests: none
 - [ ] Integration tests:
-  - A successful deposit increments `wallet_operations_total{type="DEPOSIT",outcome="SUCCESS"}`
-  - A rejected withdrawal increments the counter with the rejection outcome
-  - A response carries the request id, and an incoming request id is echoed
-  - Liveness and readiness probes return UP
-  - The OpenAPI document is served and contains every endpoint
+  - [x] A successful deposit increments `wallet_operations_total{type="DEPOSIT",outcome="SUCCESS"}`
+  - [x] A rejected withdrawal increments the counter with the rejection outcome
+  - [x] A response carries the request id, and an incoming request id is echoed
+  - [x] Liveness and readiness probes return UP
+  - [x] The OpenAPI document is served and contains every endpoint
 - [ ] E2E tests: not applicable
 
 <critical>ALWAYS CREATE AND RUN THE TASK'S TESTS BEFORE CONSIDERING IT FINISHED</critical>

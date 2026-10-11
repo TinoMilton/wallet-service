@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JSON logs, one line per event (techspec section 8, "Monitoring and
+  Observability"). Spring Boot's built-in structured logging renders each line
+  in the logstash format, with the MDC (requestId, walletId, operationId) part
+  of the JSON object. The format arrives from
+  logging.structured.format.console in application.yml, which Boot turns into
+  the CONSOLE_LOG_STRUCTURED_FORMAT system property before this file is read;
+  logstash here is the fallback when nothing sets it.
+-->
+<configuration>
+	<property name="CONSOLE_LOG_STRUCTURED_FORMAT" value="${CONSOLE_LOG_STRUCTURED_FORMAT:-logstash}"/>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>${CONSOLE_LOG_THRESHOLD}</level>
+		</filter>
+		<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+			<format>${CONSOLE_LOG_STRUCTURED_FORMAT}</format>
+			<charset>${CONSOLE_LOG_CHARSET}</charset>
+		</encoder>
+	</appender>
+	<root level="INFO">
+		<appender-ref ref="CONSOLE"/>
+	</root>
+</configuration>
