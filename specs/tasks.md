@@ -9,7 +9,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 - [x] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
 - [x] 4.0 Deposit and withdrawal — [task-4.0-deposit-and-withdrawal.md](task-4.0-deposit-and-withdrawal.md)
 - [x] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
-- [ ] 6.0 Idempotent replay — [task-6.0-idempotent-replay.md](task-6.0-idempotent-replay.md)
+- [x] 6.0 Idempotent replay — [task-6.0-idempotent-replay.md](task-6.0-idempotent-replay.md)
 - [x] 7.0 Historical balance and ledger endpoint — [task-7.0-historical-balance-and-ledger.md](task-7.0-historical-balance-and-ledger.md)
 - [ ] 8.0 Transactional outbox and publisher — [task-8.0-outbox.md](task-8.0-outbox.md)
 - [ ] 9.0 Observability and operational readiness — [task-9.0-observability.md](task-9.0-observability.md)
@@ -147,7 +147,8 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 5.0 accepted and merged to main (fast-forward) — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3` (locking, atomicity and arithmetic confirmed correct; 5 fixes applied); `./mvnw verify` BUILD SUCCESS on the branch, 97.64% line / 90.38% branch, ConcurrencyTest 10/10 then 5/5, commits `2553381` and `cf8430e`. Nothing open.
 - 7.0 accepted and merged to main (fast-forward after rebase, no conflicts) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (1 blocker: nanosecond cutoff bound to a microsecond column, fixed with truncation and a regression test; 2 other fixes applied; BR-11 labels kept by coordinator decision), commits `f7deb8b` and `f69bef1`. Page size defaults to 20, capped at 100. Nothing open.
 - Stage 5 gate passed: `./mvnw verify` BUILD SUCCESS on the rebased head that is now main (`f69bef1`), 92 tests, 97.99% line / 92.42% branch. Worktrees and branches removed.
-- 6.0 dispatched to Droid `gpt-6-sol` `-r high` (headless; Codex still blocked at 0.157.0). Awaiting delivery; review by Droid `glm-5.3` follows.
+- 6.0 accepted — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3` (replay, transaction boundaries and concurrency confirmed correct; 4 tests added); `./mvnw verify` BUILD SUCCESS, 102 tests, 97.70% line / 89.74% branch, ConcurrencyTest 10/10, commits `a53ba18` and `85e104f`. Decision: the operation row is inserted before the wallet lock; tech spec section 4 updated to match. Open, minor: `LedgerService.replay` takes the fingerprint as a bare `String`; left for the readability pass in 10.0.
+- Stage 7 dispatched in parallel, each in its own worktree and branch: 8.0 to Droid `glm-5.3` `-r high` (branch `task-8.0`, review by headless Codex), 9.0 to Droid `glm-5.3` `-r high` (branch `task-9.0`).
 
 ## Rules for Every Task
 
