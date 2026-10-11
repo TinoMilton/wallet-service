@@ -5,7 +5,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 ## Tasks
 
 - [x] 1.0 Project scaffold and build tooling — [task-1.0-project-scaffold.md](task-1.0-project-scaffold.md)
-- [ ] 2.0 Database schema and domain model — [task-2.0-schema-and-domain-model.md](task-2.0-schema-and-domain-model.md)
+- [x] 2.0 Database schema and domain model — [task-2.0-schema-and-domain-model.md](task-2.0-schema-and-domain-model.md)
 - [ ] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
 - [ ] 4.0 Deposit and withdrawal — [task-4.0-deposit-and-withdrawal.md](task-4.0-deposit-and-withdrawal.md)
 - [ ] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
@@ -139,7 +139,9 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 
 - Environment (2026-10-11): only JDK 26.0.2 is installed locally, not JDK 25. The build targets Java 25 (`maven.compiler.release=25`) and runs on JDK 26; the Docker image in task 10.0 uses a JDK 25 runtime.
 - 1.0 accepted — Droid `glm-5.3` `-r high`; `./mvnw verify` BUILD SUCCESS, commit `65f26b8`. Spring Boot 4.1.1, Spotless 3.10.4, JaCoCo 0.8.15, Testcontainers 2.0.5. Nothing open.
-- 2.0 dispatched to Droid `gpt-6-sol` `-r high` (headless). Awaiting delivery; review by Droid `glm-5.3` follows.
+- 2.0 accepted — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3`; `./mvnw verify` BUILD SUCCESS, 16 tests, 96.97% line / 100% branch, commits `5c29b62` and `8a9eced`. Added `spring-boot-flyway` (Boot 4 needs it for Flyway to run before JPA validation). Domain types added beyond the task list: `Balance`, `SignedAmount`, `OperationType`. Nothing open.
+- Orca Run `run_e644aeeff8a8` created for supervised Codex workers.
+- 3.0 dispatched to Droid `glm-5.3` `-r high` (headless). Awaiting delivery; review by Codex follows.
 
 ## Rules for Every Task
 

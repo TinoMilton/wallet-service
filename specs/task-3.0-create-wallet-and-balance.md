@@ -23,11 +23,11 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 3.1 Implement `GlobalExceptionHandler` and the problem-detail format with `code`
-- [ ] 3.2 Implement `WalletService.create` and `WalletService.currentBalance`
-- [ ] 3.3 Implement `WalletController` for the two endpoints
-- [ ] 3.4 Add the test helpers `aWallet()`, `assertBalance(...)` and `assertRejected(...)`
-- [ ] 3.5 Write the tests for BR-01, BR-02 and BR-11 (balance)
+- [x] 3.1 Implement `GlobalExceptionHandler` and the problem-detail format with `code`
+- [x] 3.2 Implement `WalletService.create` and `WalletService.currentBalance`
+- [x] 3.3 Implement `WalletController` for the two endpoints
+- [x] 3.4 Add the test helpers `aWallet()`, `assertBalance(...)` and `assertRejected(...)`
+- [x] 3.5 Write the tests for BR-01, BR-02 and BR-11 (balance)
 
 ## Implementation Details
 
@@ -45,7 +45,7 @@ None. The project has no `.claude/skills` directory.
 ## Task Tests
 
 - [ ] Unit tests: none
-- [ ] Integration tests: BR-01 new wallet has zero balance; BR-02 second wallet for the user is rejected with 409; BR-11 balance of an unknown wallet is 404; blank `userId` is 400
+- [x] Integration tests: BR-01 new wallet has zero balance; BR-02 second wallet for the user is rejected with 409; BR-11 balance of an unknown wallet is 404; blank `userId` is 400
 - [ ] E2E tests: not applicable
 
 <critical>ALWAYS CREATE AND RUN THE TASK'S TESTS BEFORE CONSIDERING IT FINISHED</critical>
