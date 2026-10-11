@@ -23,3 +23,9 @@ management:
       # Liveness and readiness groups for section 8 of the techspec; readiness includes the database.
       probes:
         enabled: true
+
+wallet:
+  outbox:
+    # The publisher relays pending events on a fixed delay, in occurred_at order, in bounded batches.
+    publish-delay: 2s
+    batch-size: 50

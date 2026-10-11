@@ -29,12 +29,12 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 8.1 Add the event-recording step to the write flow in `LedgerService`
-- [ ] 8.2 Define the event payloads
-- [ ] 8.3 Implement the `EventRelay` interface and its logging implementation
-- [ ] 8.4 Implement `OutboxPublisher` with the skip-locked query
-- [ ] 8.5 Register the two outbox gauges in `OutboxMetrics`
-- [ ] 8.6 Write the tests for BR-28, the publisher and the gauges
+- [x] 8.1 Add the event-recording step to the write flow in `LedgerService`
+- [x] 8.2 Define the event payloads
+- [x] 8.3 Implement the `EventRelay` interface and its logging implementation
+- [x] 8.4 Implement `OutboxPublisher` with the skip-locked query
+- [x] 8.5 Register the two outbox gauges in `OutboxMetrics`
+- [x] 8.6 Write the tests for BR-28, the publisher and the gauges
 
 ## Implementation Details
 
@@ -51,8 +51,8 @@ None. The project has no `.claude/skills` directory.
 
 ## Task Tests
 
-- [ ] Unit tests: none
-- [ ] Integration tests:
+- [x] Unit tests: none
+- [x] Integration tests:
   - BR-28 a successful deposit emits exactly one event with the operation id
   - BR-28 a successful transfer emits exactly one event
   - BR-28 a rejected withdrawal emits no event
@@ -60,7 +60,7 @@ None. The project has no `.claude/skills` directory.
   - A publishing run marks unpublished events as published, in order
   - An event whose relay fails stays unpublished
   - `wallet_outbox_unpublished` reports the number of unpublished events
-- [ ] E2E tests: not applicable
+- [x] E2E tests: not applicable
 
 <critical>ALWAYS CREATE AND RUN THE TASK'S TESTS BEFORE CONSIDERING IT FINISHED</critical>
 

@@ -17,6 +17,11 @@ import com.recargapay.wallet.domain.exception.IdempotencyKeyReusedException;
 import com.recargapay.wallet.domain.exception.SameWalletTransferException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.outbox.EventPayloads;
+import com.recargapay.wallet.outbox.events.FundsDeposited;
+import com.recargapay.wallet.outbox.events.FundsTransferred;
+import com.recargapay.wallet.outbox.events.FundsWithdrawn;
+import com.recargapay.wallet.outbox.events.WalletEvent;
 import com.recargapay.wallet.repository.LedgerEntryRepository;
 import com.recargapay.wallet.repository.OperationRepository;
 import com.recargapay.wallet.repository.OutboxEventRepository;
@@ -39,16 +44,19 @@ public class LedgerService {
 	private final OperationRepository operations;
 	private final LedgerEntryRepository entries;
 	private final OutboxEventRepository events;
+	private final EventPayloads payloads;
 	private final RequestFingerprint fingerprints;
 	private final Clock clock;
 
 	LedgerService(EntityManager entityManager, WalletRepository wallets, OperationRepository operations,
-			LedgerEntryRepository entries, OutboxEventRepository events, RequestFingerprint fingerprints, Clock clock) {
+			LedgerEntryRepository entries, OutboxEventRepository events, EventPayloads payloads,
+			RequestFingerprint fingerprints, Clock clock) {
 		this.entityManager = entityManager;
 		this.wallets = wallets;
 		this.operations = operations;
 		this.entries = entries;
 		this.events = events;
+		this.payloads = payloads;
 		this.fingerprints = fingerprints;
 		this.clock = clock;
 	}
@@ -62,7 +70,8 @@ public class LedgerService {
 		Balance balanceAfter = wallet.balance().credit(amount);
 		appendEntry(wallet, operation, SignedAmount.credit(amount), balanceAfter, position);
 		updateBalance(wallet, balanceAfter);
-		recordEvent(operation, "FundsDeposited", position.recordedAt());
+		recordEvent(operation,
+				new FundsDeposited(new OperationId(operation.id()), walletId, amount, position.recordedAt()));
 		return new OperationResult(new OperationId(operation.id()), OperationType.DEPOSIT, walletId, amount,
 				balanceAfter, position.recordedAt());
 	}
@@ -77,7 +86,8 @@ public class LedgerService {
 		Balance balanceAfter = wallet.balance().debit(amount);
 		appendEntry(wallet, operation, SignedAmount.debit(amount), balanceAfter, position);
 		updateBalance(wallet, balanceAfter);
-		recordEvent(operation, "FundsWithdrawn", position.recordedAt());
+		recordEvent(operation,
+				new FundsWithdrawn(new OperationId(operation.id()), walletId, amount, position.recordedAt()));
 		return new OperationResult(new OperationId(operation.id()), OperationType.WITHDRAWAL, walletId, amount,
 				balanceAfter, position.recordedAt());
 	}
@@ -99,7 +109,7 @@ public class LedgerService {
 		appendTransferEntries(pair, operation, amount, senderBalance, receiverBalance, senderPosition, receiverPosition,
 				recordedAt);
 		updateTransferBalances(pair, senderBalance, receiverBalance);
-		recordEvent(operation, "FundsTransferred", recordedAt);
+		recordEvent(operation, new FundsTransferred(new OperationId(operation.id()), from, to, amount, recordedAt));
 		return new OperationResult(new OperationId(operation.id()), OperationType.TRANSFER, from, amount, senderBalance,
 				recordedAt);
 	}
@@ -237,9 +247,12 @@ public class LedgerService {
 		updateBalance(pair.receiver(), receiverBalance);
 	}
 
-	private void recordEvent(Operation operation, String eventType, Instant recordedAt) {
-		String payload = "{\"operationId\":\"" + operation.id() + "\"}";
-		events.save(new OutboxEvent(UUID.randomUUID(), operation.id(), eventType, payload, recordedAt));
+	private void recordEvent(Operation operation, WalletEvent event) {
+		// Invariant 4: one event per successful operation, written with
+		// the entries in the same transaction. A rejected operation never
+		// gets here; a replay only reads.
+		events.save(new OutboxEvent(UUID.randomUUID(), operation.id(), event.eventType(), payloads.asJson(event),
+				event.occurredAt()));
 	}
 
 	private record LedgerPosition(long sequence, Instant recordedAt) {
