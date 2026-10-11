@@ -76,11 +76,29 @@ public class LedgerEntry {
 		return sequence;
 	}
 
+	public SignedAmount amountSigned() {
+		return amountSigned;
+	}
+
 	public Instant createdAt() {
 		return createdAt;
 	}
 
 	public Balance balanceAfter() {
 		return balanceAfter;
+	}
+
+	/**
+	 * The operation that caused this entry. The ledger page fetches the operation
+	 * with its query; the lazy association could not be read once that read has
+	 * ended.
+	 */
+	public OperationId operationId() {
+		return new OperationId(operation.id());
+	}
+
+	/** The type of the operation that caused this entry. */
+	public OperationType operationType() {
+		return operation.type();
 	}
 }

@@ -4,6 +4,7 @@ import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
 import com.recargapay.wallet.domain.exception.InvalidAmountException;
 import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
+import com.recargapay.wallet.domain.exception.InvalidTimestampException;
 import com.recargapay.wallet.domain.exception.InsufficientFundsException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
@@ -87,6 +88,11 @@ public class GlobalExceptionHandler {
 	public ProblemDetail unsupportedMediaType(HttpMediaTypeNotSupportedException unsupportedMediaType) {
 		return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
 				"the media type of the request body is not supported");
+	}
+
+	@ExceptionHandler(InvalidTimestampException.class)
+	public ProblemDetail invalidTimestamp(InvalidTimestampException invalid) {
+		return problem(HttpStatus.BAD_REQUEST, "INVALID_TIMESTAMP", invalid.getMessage());
 	}
 
 	@ExceptionHandler(Exception.class)

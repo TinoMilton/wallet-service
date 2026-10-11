@@ -1,5 +1,6 @@
 package com.recargapay.wallet.domain;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.math.BigDecimal;
 
 /**
@@ -25,7 +26,12 @@ public final class SignedAmount {
 		return new SignedAmount(amount);
 	}
 
-	BigDecimal decimalValue() {
+	/**
+	 * The delta as a plain decimal. Carries {@code @JsonValue} so the audit page
+	 * can show the signed delta as a JSON number, the way Balance serialises.
+	 */
+	@JsonValue
+	public BigDecimal decimalValue() {
 		return amount;
 	}
 }

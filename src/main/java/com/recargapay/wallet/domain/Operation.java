@@ -51,4 +51,9 @@ public class Operation {
 	public UUID id() {
 		return id;
 	}
+
+	/** The kind of money movement this operation performed. */
+	public OperationType type() {
+		return type;
+	}
 }

@@ -27,12 +27,12 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 7.1 Implement the historical balance query in `LedgerEntryRepository`
-- [ ] 7.2 Implement `WalletService.balanceAt` with its timestamp rules
-- [ ] 7.3 Add the `at` parameter to the balance endpoint
-- [ ] 7.4 Write the tests for BR-13, BR-14, BR-15 and BR-16
-- [ ] 7.5 Implement `WalletService.entries` and the entries endpoint
-- [ ] 7.6 Write the tests for the entries endpoint
+- [x] 7.1 Implement the historical balance query in `LedgerEntryRepository`
+- [x] 7.2 Implement `WalletService.balanceAt` with its timestamp rules
+- [x] 7.3 Add the `at` parameter to the balance endpoint
+- [x] 7.4 Write the tests for BR-13, BR-14, BR-15 and BR-16
+- [x] 7.5 Implement `WalletService.entries` and the entries endpoint
+- [x] 7.6 Write the tests for the entries endpoint
 
 If time is short, subtasks 7.5 and 7.6 are cut and recorded as a trade-off.
 
@@ -53,7 +53,7 @@ If time is short, subtasks 7.5 and 7.6 are cut and recorded as a trade-off.
 ## Task Tests
 
 - [ ] Unit tests: none
-- [ ] Integration tests:
+- [x] Integration tests:
   - BR-13 balance exactly at an entry's timestamp includes that entry
   - BR-13 balance just before an entry's timestamp excludes it
   - BR-13 balance just after the last entry equals the current balance
