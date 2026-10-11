@@ -6,7 +6,7 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 
 - [x] 1.0 Project scaffold and build tooling — [task-1.0-project-scaffold.md](task-1.0-project-scaffold.md)
 - [x] 2.0 Database schema and domain model — [task-2.0-schema-and-domain-model.md](task-2.0-schema-and-domain-model.md)
-- [ ] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
+- [x] 3.0 Create wallet and current balance — [task-3.0-create-wallet-and-balance.md](task-3.0-create-wallet-and-balance.md)
 - [ ] 4.0 Deposit and withdrawal — [task-4.0-deposit-and-withdrawal.md](task-4.0-deposit-and-withdrawal.md)
 - [ ] 5.0 Transfer between wallets — [task-5.0-transfer.md](task-5.0-transfer.md)
 - [ ] 6.0 Idempotent replay — [task-6.0-idempotent-replay.md](task-6.0-idempotent-replay.md)
@@ -72,7 +72,7 @@ An agent edits only the files it owns. If it needs a change in a file owned by t
 
 Files both agents of a stage may touch, under an append-only rule (add new members, never change or reorder existing ones):
 
-- `src/test/java/.../support/WalletTestActions.java` — stage 5: 5.0 adds `transfer(...)`, 7.0 adds `balanceAt(...)` and `entries(...)`
+- Test helpers are not shared: each task adds its own helper class under `src/test/java/.../support/` (for example `TransferActions` for 5.0, `HistoryActions` for 7.0) and does not edit another task's helper file.
 - `GlobalExceptionHandler` — stage 5: each adds handlers for its own exceptions
 - `src/main/resources/application.yml` — stage 7: 8.0 adds outbox settings, 9.0 adds management and logging settings
 
@@ -141,7 +141,9 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 1.0 accepted — Droid `glm-5.3` `-r high`; `./mvnw verify` BUILD SUCCESS, commit `65f26b8`. Spring Boot 4.1.1, Spotless 3.10.4, JaCoCo 0.8.15, Testcontainers 2.0.5. Nothing open.
 - 2.0 accepted — Droid `gpt-6-sol` `-r high`, reviewed by Droid `glm-5.3`; `./mvnw verify` BUILD SUCCESS, 16 tests, 96.97% line / 100% branch, commits `5c29b62` and `8a9eced`. Added `spring-boot-flyway` (Boot 4 needs it for Flyway to run before JPA validation). Domain types added beyond the task list: `Balance`, `SignedAmount`, `OperationType`. Nothing open.
 - Orca Run `run_e644aeeff8a8` created for supervised Codex workers.
-- 3.0 dispatched to Droid `glm-5.3` `-r high` (headless). Awaiting delivery; review by Codex follows.
+- 3.0 accepted — Droid `glm-5.3` `-r high`, reviewed by headless Codex (2 blockers and 8 pattern fixes, all applied); `./mvnw verify` BUILD SUCCESS in 11.7s, 35 tests, 98.40% line / 94.44% branch, commits `36b955b` and `2cdac46`. Test helpers are now small classes by concern in `support/` (`WalletActions`, `WalletAssertions`, `TestClock`, `TestDatabase`), used by static import. Open, minor: `LedgerImmutabilityTest` still has a harmless `@DirtiesContext`; task 4.0 removes it.
+- Codex via Orca is blocked at startup by its update prompt (0.157.0 → 0.162.1); Orca will not send input to a blocked agent prompt. The user must update Codex or dismiss the prompt. Until then critical tasks use the second choice, Droid `gpt-6-sol`.
+- 4.0 dispatched to Droid `gpt-6-sol` `-r high` (headless). Awaiting delivery; review by Droid `glm-5.3` follows.
 
 ## Rules for Every Task
 

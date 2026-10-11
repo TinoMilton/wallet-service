@@ -26,15 +26,15 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 4.1 Implement the locking wallet query and the lock-timeout setting; record the JPA hint finding
-- [ ] 4.2 Implement `LedgerService.deposit` and `LedgerService.withdraw`
-- [ ] 4.3 Implement the request fingerprint
-- [ ] 4.4 Implement the two endpoints, including the required idempotency header
-- [ ] 4.5 Map insufficient funds, lock timeout and missing key to their problem details
-- [ ] 4.6 Add the test helpers `aWalletWithBalance(...)`, `deposit(...)`, `withdraw(...)`, ledger assertions and `assertAuditInvariant(...)`
-- [ ] 4.7 Write the tests for BR-05, BR-06, BR-07, BR-11, BR-12, BR-17, BR-19, BR-20 and BR-27
-- [ ] 4.8 Implement the `runConcurrently(callers, action)` harness on virtual threads with a start latch
-- [ ] 4.9 Write the concurrency tests for BR-24 and BR-29
+- [x] 4.1 Implement the locking wallet query and the lock-timeout setting; record the JPA hint finding
+- [x] 4.2 Implement `LedgerService.deposit` and `LedgerService.withdraw`
+- [x] 4.3 Implement the request fingerprint
+- [x] 4.4 Implement the two endpoints, including the required idempotency header
+- [x] 4.5 Map insufficient funds, lock timeout and missing key to their problem details
+- [x] 4.6 Add the test helpers `aWalletWithBalance(...)`, `deposit(...)`, `withdraw(...)`, ledger assertions and `assertAuditInvariant(...)`
+- [x] 4.7 Write the tests for BR-05, BR-06, BR-07, BR-11, BR-12, BR-17, BR-19, BR-20 and BR-27
+- [x] 4.8 Implement the `runConcurrently(callers, action)` harness on virtual threads with a start latch
+- [x] 4.9 Write the concurrency tests for BR-24 and BR-29
 
 ## Implementation Details
 
@@ -53,8 +53,8 @@ None. The project has no `.claude/skills` directory.
 
 ## Task Tests
 
-- [ ] Unit tests: request fingerprint is equal for equal requests and different for different ones
-- [ ] Integration tests:
+- [x] Unit tests: request fingerprint is equal for equal requests and different for different ones
+- [x] Integration tests:
   - BR-05 deposit increases the balance by exactly the amount
   - BR-06 withdrawal decreases the balance by exactly the amount
   - BR-07 withdrawal above the balance is rejected and nothing changes

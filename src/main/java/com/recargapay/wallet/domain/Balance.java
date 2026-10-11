@@ -21,6 +21,21 @@ public final class Balance {
 		return new Balance(amount.decimalValue());
 	}
 
+	public Balance credit(Money amount) {
+		return new Balance(this.amount.add(amount.decimalValue()));
+	}
+
+	public boolean canDebit(Money amount) {
+		return this.amount.compareTo(amount.decimalValue()) >= 0;
+	}
+
+	public Balance debit(Money amount) {
+		if (!canDebit(amount)) {
+			throw new IllegalArgumentException("Balance cannot be negative");
+		}
+		return new Balance(this.amount.subtract(amount.decimalValue()));
+	}
+
 	static Balance fromDatabase(BigDecimal amount) {
 		return new Balance(amount);
 	}

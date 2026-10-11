@@ -47,4 +47,8 @@ public class Operation {
 		this.requestFingerprint = Objects.requireNonNull(requestFingerprint, "request fingerprint");
 		this.createdAt = Objects.requireNonNull(createdAt, "created at");
 	}
+
+	public UUID id() {
+		return id;
+	}
 }

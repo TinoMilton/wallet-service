@@ -3,10 +3,15 @@ package com.recargapay.wallet.api;
 import com.recargapay.wallet.api.dto.CreateWalletRequest;
 import com.recargapay.wallet.api.dto.CreateWalletResponse;
 import com.recargapay.wallet.api.dto.CurrentBalanceResponse;
+import com.recargapay.wallet.api.dto.MoneyOperationResponse;
+import com.recargapay.wallet.api.dto.MoneyRequest;
 import com.recargapay.wallet.domain.Balance;
+import com.recargapay.wallet.domain.IdempotencyKey;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
+import com.recargapay.wallet.service.LedgerService;
 import com.recargapay.wallet.service.WalletService;
 import jakarta.validation.Valid;
 import java.time.Clock;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,10 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class WalletController {
 
 	private final WalletService walletService;
+	private final LedgerService ledgerService;
 	private final Clock clock;
 
-	WalletController(WalletService walletService, Clock clock) {
+	WalletController(WalletService walletService, LedgerService ledgerService, Clock clock) {
 		this.walletService = walletService;
+		this.ledgerService = ledgerService;
 		this.clock = clock;
 	}
 
@@ -44,6 +52,32 @@ public class WalletController {
 		WalletId requestedWallet = readWalletId(walletId);
 		Balance balance = walletService.currentBalance(requestedWallet);
 		return new CurrentBalanceResponse(requestedWallet.value(), balance, clock.instant());
+	}
+
+	@PostMapping("/{walletId}/deposits")
+	@ResponseStatus(HttpStatus.CREATED)
+	public MoneyOperationResponse deposit(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
+			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
+		return MoneyOperationResponse
+				.from(ledgerService.deposit(readWalletId(walletId), request.amount(), readIdempotencyKey(rawKey)));
+	}
+
+	@PostMapping("/{walletId}/withdrawals")
+	@ResponseStatus(HttpStatus.CREATED)
+	public MoneyOperationResponse withdraw(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
+			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
+		return MoneyOperationResponse
+				.from(ledgerService.withdraw(readWalletId(walletId), request.amount(), readIdempotencyKey(rawKey)));
+	}
+
+	private static IdempotencyKey readIdempotencyKey(String rawKey) {
+		if (rawKey == null || rawKey.isBlank()) {
+			throw new MissingIdempotencyKeyException();
+		}
+		if (rawKey.length() > 128) {
+			throw new IllegalArgumentException("Idempotency-Key must be at most 128 characters");
+		}
+		return new IdempotencyKey(rawKey);
 	}
 
 	/**

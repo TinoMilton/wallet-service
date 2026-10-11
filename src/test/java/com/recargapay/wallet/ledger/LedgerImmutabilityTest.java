@@ -26,10 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.DirtiesContext;
 
-// Testcontainers stops the shared container after this class; its context must not be reused.
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class LedgerImmutabilityTest extends IntegrationTest {
 
 	private static final Instant RECORDED_AT = Instant.parse("2026-01-01T00:00:00Z");

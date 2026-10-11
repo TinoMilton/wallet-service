@@ -47,6 +47,10 @@ public class Wallet {
 		return balance;
 	}
 
+	public void recordBalance(Balance balance) {
+		this.balance = Objects.requireNonNull(balance, "balance");
+	}
+
 	public Instant createdAt() {
 		return createdAt;
 	}

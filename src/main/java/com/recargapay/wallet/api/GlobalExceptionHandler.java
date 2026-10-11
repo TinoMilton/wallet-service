@@ -2,6 +2,9 @@ package com.recargapay.wallet.api;
 
 import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.domain.exception.InsufficientFundsException;
+import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
+import com.recargapay.wallet.domain.exception.WalletBusyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +34,26 @@ public class GlobalExceptionHandler {
 		return problem(HttpStatus.NOT_FOUND, "WALLET_NOT_FOUND", unknownWallet.getMessage());
 	}
 
+	@ExceptionHandler(InsufficientFundsException.class)
+	public ProblemDetail insufficientFunds(InsufficientFundsException insufficientFunds) {
+		return problem(HttpStatus.UNPROCESSABLE_CONTENT, "INSUFFICIENT_FUNDS", insufficientFunds.getMessage());
+	}
+
+	@ExceptionHandler(WalletBusyException.class)
+	public ProblemDetail walletBusy(WalletBusyException busy) {
+		return problem(HttpStatus.SERVICE_UNAVAILABLE, "WALLET_BUSY", busy.getMessage());
+	}
+
+	@ExceptionHandler(MissingIdempotencyKeyException.class)
+	public ProblemDetail missingKey(MissingIdempotencyKeyException missingKey) {
+		return problem(HttpStatus.BAD_REQUEST, "MISSING_IDEMPOTENCY_KEY", missingKey.getMessage());
+	}
+
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ProblemDetail invalidArgument(IllegalArgumentException invalid) {
+		return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", invalid.getMessage());
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ProblemDetail invalidRequest(MethodArgumentNotValidException invalidRequest) {
 		FieldError firstError = invalidRequest.getBindingResult().getFieldErrors().getFirst();
@@ -39,6 +62,12 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ProblemDetail unreadableBody(HttpMessageNotReadableException unreadableBody) {
+		for (Throwable cause = unreadableBody; cause != null; cause = cause.getCause()) {
+			if (cause instanceof IllegalArgumentException invalid && invalid.getMessage() != null
+					&& invalid.getMessage().startsWith("Amount must")) {
+				return problem(HttpStatus.BAD_REQUEST, "INVALID_AMOUNT", invalid.getMessage());
+			}
+		}
 		return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "the request body is missing or malformed");
 	}
 

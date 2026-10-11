@@ -59,12 +59,25 @@ public class LedgerEntry {
 
 	public static LedgerEntry credit(UUID id, Operation operation, Wallet wallet, long sequence, Money amount,
 			Balance balanceAfter, Instant createdAt) {
-		return new LedgerEntry(id, operation, wallet, sequence, SignedAmount.credit(amount), balanceAfter, createdAt);
+		return record(id, operation, wallet, sequence, SignedAmount.credit(amount), balanceAfter, createdAt);
 	}
 
 	public static LedgerEntry debit(UUID id, Operation operation, Wallet wallet, long sequence, Money amount,
 			Balance balanceAfter, Instant createdAt) {
-		return new LedgerEntry(id, operation, wallet, sequence, SignedAmount.debit(amount), balanceAfter, createdAt);
+		return record(id, operation, wallet, sequence, SignedAmount.debit(amount), balanceAfter, createdAt);
+	}
+
+	public static LedgerEntry record(UUID id, Operation operation, Wallet wallet, long sequence, SignedAmount amount,
+			Balance balanceAfter, Instant createdAt) {
+		return new LedgerEntry(id, operation, wallet, sequence, amount, balanceAfter, createdAt);
+	}
+
+	public long sequence() {
+		return sequence;
+	}
+
+	public Instant createdAt() {
+		return createdAt;
 	}
 
 	public Balance balanceAfter() {
