@@ -35,7 +35,19 @@ public class Wallet {
 		this.createdAt = Objects.requireNonNull(createdAt, "created at");
 	}
 
+	public WalletId id() {
+		return id;
+	}
+
+	public String userId() {
+		return userId;
+	}
+
 	public Balance balance() {
 		return balance;
+	}
+
+	public Instant createdAt() {
+		return createdAt;
 	}
 }

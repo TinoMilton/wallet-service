@@ -1,13 +1,12 @@
 package com.recargapay.wallet.api.dto;
 
-import java.math.BigDecimal;
+import com.recargapay.wallet.domain.Balance;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * The 201 response of creating a wallet. The balance appears in its wire form,
- * a plain number with two decimals; the domain keeps its own {@code Balance}
- * type (techspec section 6).
+ * The 201 response of creating a wallet. The balance keeps its domain type;
+ * Jackson renders it as a plain number with two decimals, like Money.
  */
-public record CreateWalletResponse(UUID walletId, String userId, BigDecimal balance, Instant createdAt) {
+public record CreateWalletResponse(UUID walletId, String userId, Balance balance, Instant createdAt) {
 }

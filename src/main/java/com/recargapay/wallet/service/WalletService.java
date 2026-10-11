@@ -1,16 +1,14 @@
 package com.recargapay.wallet.service;
 
-import com.recargapay.wallet.api.dto.CreateWalletResponse;
-import com.recargapay.wallet.api.dto.CurrentBalanceResponse;
+import com.recargapay.wallet.domain.Balance;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
 import com.recargapay.wallet.repository.WalletRepository;
-import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +20,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class WalletService {
 
-	/** BR-01: every wallet is created with a balance of zero, in its wire form. */
-	private static final BigDecimal ZERO_BALANCE = new BigDecimal("0.00");
+	/**
+	 * The name Postgres gives the constraint that enforces one wallet per user
+	 * (migration V1). Only a violation of this constraint means the wallet already
+	 * exists; any other integrity failure is unexpected and travels on.
+	 */
+	private static final String ONE_WALLET_PER_USER_CONSTRAINT = "wallet_user_id_key";
 
 	private final WalletRepository wallets;
 	private final Clock clock;
@@ -33,21 +35,29 @@ public class WalletService {
 		this.clock = clock;
 	}
 
-	public CreateWalletResponse create(String userId) {
-		UUID walletId = UUID.randomUUID();
-		Instant createdAt = clock.instant();
+	public Wallet create(String userId) {
+		Wallet wallet = new Wallet(new WalletId(UUID.randomUUID()), userId, clock.instant());
 		try {
-			wallets.saveAndFlush(new Wallet(new WalletId(walletId), userId, createdAt));
-		} catch (DataIntegrityViolationException duplicateUser) {
-			// The unique constraint on user_id is the guard: a user has one wallet (BR-02).
-			throw new WalletAlreadyExistsException(userId);
+			wallets.saveAndFlush(wallet);
+		} catch (DataIntegrityViolationException failure) {
+			if (violatedOneWalletPerUser(failure)) {
+				throw new WalletAlreadyExistsException(userId);
+			}
+			throw failure;
 		}
-		return new CreateWalletResponse(walletId, userId, ZERO_BALANCE, createdAt);
+		return wallet;
 	}
 
-	public CurrentBalanceResponse currentBalance(UUID walletId) {
-		BigDecimal balance = wallets.findCurrentBalance(walletId)
-				.orElseThrow(() -> new WalletNotFoundException(walletId));
-		return new CurrentBalanceResponse(walletId, balance, clock.instant());
+	public Balance currentBalance(WalletId walletId) {
+		return wallets.findById(walletId).map(Wallet::balance).orElseThrow(() -> new WalletNotFoundException(walletId));
+	}
+
+	private static boolean violatedOneWalletPerUser(Throwable failure) {
+		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+			if (cause instanceof ConstraintViolationException violation) {
+				return ONE_WALLET_PER_USER_CONSTRAINT.equals(violation.getConstraintName());
+			}
+		}
+		return false;
 	}
 }

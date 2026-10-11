@@ -189,28 +189,32 @@ The transfer response returns only the sender's resulting balance, because the c
 | 400 | `MISSING_IDEMPOTENCY_KEY` | Header absent on a money-moving endpoint |
 | 400 | `INVALID_TIMESTAMP` | `at` is malformed, has no offset, or is in the future |
 | 400 | `SAME_WALLET_TRANSFER` | Source and destination are the same wallet |
+| 400 | `INVALID_REQUEST` | Body is missing, malformed, or fails validation (for example a blank `userId`) |
 | 404 | `WALLET_NOT_FOUND` | Unknown wallet id, or `at` is before the wallet was created |
 | 409 | `WALLET_ALREADY_EXISTS` | The user already has a wallet |
 | 422 | `INSUFFICIENT_FUNDS` | Withdrawal or transfer exceeds the balance |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Key already used with a different request |
 | 503 | `WALLET_BUSY` | Lock wait exceeded the timeout; safe to retry with the same key |
+| 500 | `INTERNAL_ERROR` | Unexpected failure; no internal detail is exposed |
 
 ### Main Interfaces
 
 ```java
 public interface WalletService {
     Wallet create(String userId);
-    Balance currentBalance(UUID walletId);
-    Balance balanceAt(UUID walletId, Instant at);
-    Page<LedgerEntry> entries(UUID walletId, Pageable pageable);
+    Balance currentBalance(WalletId walletId);
+    Balance balanceAt(WalletId walletId, Instant at);
+    Page<LedgerEntry> entries(WalletId walletId, Pageable pageable);
 }
 
 public interface LedgerService {
-    OperationResult deposit(UUID walletId, Money amount, IdempotencyKey key);
-    OperationResult withdraw(UUID walletId, Money amount, IdempotencyKey key);
-    OperationResult transfer(UUID fromWalletId, UUID toWalletId, Money amount, IdempotencyKey key);
+    OperationResult deposit(WalletId walletId, Money amount, IdempotencyKey key);
+    OperationResult withdraw(WalletId walletId, Money amount, IdempotencyKey key);
+    OperationResult transfer(WalletId from, WalletId to, Money amount, IdempotencyKey key);
 }
 ```
+
+Services take and return domain types only. Controllers convert path and body values into domain types, and map results to response DTOs; a service never depends on an API type.
 
 ## 7. Consistency, Concurrency and Traceability
 

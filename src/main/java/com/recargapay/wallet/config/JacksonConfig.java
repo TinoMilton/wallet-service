@@ -1,5 +1,6 @@
 package com.recargapay.wallet.config;
 
+import com.recargapay.wallet.domain.Balance;
 import com.recargapay.wallet.domain.Money;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,12 @@ public class JacksonConfig {
 			@Override
 			public void serialize(Money money, JsonGenerator generator, SerializationContext context) {
 				generator.writeNumber(money.toString());
+			}
+		});
+		moneyModule.addSerializer(Balance.class, new ValueSerializer<Balance>() {
+			@Override
+			public void serialize(Balance balance, JsonGenerator generator, SerializationContext context) {
+				generator.writeNumber(balance.toString());
 			}
 		});
 		return builder -> builder.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
