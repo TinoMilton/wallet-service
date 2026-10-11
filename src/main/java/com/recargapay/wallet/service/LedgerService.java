@@ -13,6 +13,7 @@ import com.recargapay.wallet.domain.SignedAmount;
 import com.recargapay.wallet.domain.Wallet;
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.domain.exception.InsufficientFundsException;
+import com.recargapay.wallet.domain.exception.IdempotencyKeyReusedException;
 import com.recargapay.wallet.domain.exception.SameWalletTransferException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
@@ -24,6 +25,7 @@ import jakarta.persistence.EntityManager;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -53,10 +55,10 @@ public class LedgerService {
 
 	@Transactional
 	public OperationResult deposit(WalletId walletId, Money amount, IdempotencyKey key) {
+		Operation operation = recordOperation(OperationType.DEPOSIT, walletId, amount, key);
 		setLockTimeout();
 		Wallet wallet = lockWallet(walletId);
 		LedgerPosition position = nextLedgerPosition(wallet.id());
-		Operation operation = recordOperation(OperationType.DEPOSIT, walletId, amount, key, position.recordedAt());
 		Balance balanceAfter = wallet.balance().credit(amount);
 		appendEntry(wallet, operation, SignedAmount.credit(amount), balanceAfter, position);
 		updateBalance(wallet, balanceAfter);
@@ -67,10 +69,10 @@ public class LedgerService {
 
 	@Transactional
 	public OperationResult withdraw(WalletId walletId, Money amount, IdempotencyKey key) {
+		Operation operation = recordOperation(OperationType.WITHDRAWAL, walletId, amount, key);
 		setLockTimeout();
 		Wallet wallet = lockWallet(walletId);
 		LedgerPosition position = nextLedgerPosition(wallet.id());
-		Operation operation = recordOperation(OperationType.WITHDRAWAL, walletId, amount, key, position.recordedAt());
 		checkFunds(wallet, amount);
 		Balance balanceAfter = wallet.balance().debit(amount);
 		appendEntry(wallet, operation, SignedAmount.debit(amount), balanceAfter, position);
@@ -82,6 +84,7 @@ public class LedgerService {
 
 	@Transactional
 	public OperationResult transfer(WalletId from, WalletId to, Money amount, IdempotencyKey key) {
+		Operation operation = recordTransferOperation(from, to, amount, key);
 		rejectSameWallet(from, to);
 		setLockTimeout();
 		WalletPair pair = lockWalletPair(from, to);
@@ -91,7 +94,6 @@ public class LedgerService {
 		LedgerPosition senderPosition = nextLedgerPosition(from);
 		LedgerPosition receiverPosition = nextLedgerPosition(to);
 		Instant recordedAt = latestOf(senderPosition.recordedAt(), receiverPosition.recordedAt());
-		Operation operation = recordTransferOperation(from, to, amount, key, recordedAt);
 		Balance senderBalance = sender.balance().debit(amount);
 		Balance receiverBalance = receiver.balance().credit(amount);
 		appendTransferEntries(pair, operation, amount, senderBalance, receiverBalance, senderPosition, receiverPosition,
@@ -100,6 +102,31 @@ public class LedgerService {
 		recordEvent(operation, "FundsTransferred", recordedAt);
 		return new OperationResult(new OperationId(operation.id()), OperationType.TRANSFER, from, amount, senderBalance,
 				recordedAt);
+	}
+
+	@Transactional(readOnly = true)
+	public OperationResult replay(IdempotencyKey key, String fingerprint) {
+		Operation operation = operations.findByIdempotencyKey(key)
+				.orElseThrow(() -> new IllegalStateException("Committed operation missing for idempotency key"));
+		checkFingerprint(operation, fingerprint);
+		List<LedgerEntry> originalEntries = entries.forOperation(operation.id());
+		LedgerEntry resultEntry = resultEntry(operation, originalEntries);
+		return new OperationResult(new OperationId(operation.id()), operation.type(), resultEntry.walletId(),
+				resultEntry.amountSigned().magnitude(), resultEntry.balanceAfter(), resultEntry.createdAt());
+	}
+
+	private void checkFingerprint(Operation operation, String fingerprint) {
+		if (!operation.requestFingerprint().equals(fingerprint)) {
+			throw new IdempotencyKeyReusedException();
+		}
+	}
+
+	private LedgerEntry resultEntry(Operation operation, List<LedgerEntry> originalEntries) {
+		if (operation.type() == OperationType.TRANSFER) {
+			return originalEntries.stream().filter(entry -> entry.amountSigned().isDebit()).findFirst()
+					.orElseThrow(() -> new IllegalStateException("Transfer debit entry missing"));
+		}
+		return originalEntries.getFirst();
 	}
 
 	private void rejectSameWallet(WalletId from, WalletId to) {
@@ -165,19 +192,19 @@ public class LedgerService {
 		}).orElse(now);
 	}
 
-	private Operation recordOperation(OperationType type, WalletId walletId, Money amount, IdempotencyKey key,
-			Instant recordedAt) {
-		return saveOperation(type, key, fingerprints.forRequest(type, walletId, amount), recordedAt);
+	private Operation recordOperation(OperationType type, WalletId walletId, Money amount, IdempotencyKey key) {
+		return saveOperation(type, key, fingerprints.forRequest(type, walletId, amount));
 	}
 
-	private Operation recordTransferOperation(WalletId from, WalletId to, Money amount, IdempotencyKey key,
-			Instant recordedAt) {
+	private Operation recordTransferOperation(WalletId from, WalletId to, Money amount, IdempotencyKey key) {
 		String fingerprint = fingerprints.forRequest(OperationType.TRANSFER, from, to, amount);
-		return saveOperation(OperationType.TRANSFER, key, fingerprint, recordedAt);
+		return saveOperation(OperationType.TRANSFER, key, fingerprint);
 	}
 
-	private Operation saveOperation(OperationType type, IdempotencyKey key, String fingerprint, Instant recordedAt) {
-		return operations.save(new Operation(UUID.randomUUID(), type, key, fingerprint, recordedAt));
+	private Operation saveOperation(OperationType type, IdempotencyKey key, String fingerprint) {
+		// Flush the unique key before locking wallets: a competing request can only
+		// wait on this operation, never hold a wallet lock while it waits.
+		return operations.saveAndFlush(new Operation(UUID.randomUUID(), type, key, fingerprint, clock.instant()));
 	}
 
 	private void checkFunds(Wallet wallet, Money amount) {

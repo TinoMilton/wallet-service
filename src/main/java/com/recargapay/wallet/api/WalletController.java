@@ -19,7 +19,7 @@ import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.InvalidPageRequestException;
 import com.recargapay.wallet.domain.exception.InvalidTimestampException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
-import com.recargapay.wallet.service.LedgerService;
+import com.recargapay.wallet.service.IdempotentCommandExecutor;
 import com.recargapay.wallet.service.WalletService;
 import jakarta.validation.Valid;
 import java.time.Clock;
@@ -55,12 +55,12 @@ public class WalletController {
 	private static final int DEFAULT_PAGE_SIZE = 20;
 
 	private final WalletService walletService;
-	private final LedgerService ledgerService;
+	private final IdempotentCommandExecutor commands;
 	private final Clock clock;
 
-	WalletController(WalletService walletService, LedgerService ledgerService, Clock clock) {
+	WalletController(WalletService walletService, IdempotentCommandExecutor commands, Clock clock) {
 		this.walletService = walletService;
-		this.ledgerService = ledgerService;
+		this.commands = commands;
 		this.clock = clock;
 	}
 
@@ -101,7 +101,7 @@ public class WalletController {
 	public MoneyOperationResponse deposit(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
 			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
-				.from(ledgerService.deposit(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
+				.from(commands.deposit(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
 	}
 
 	@PostMapping("/{walletId}/withdrawals")
@@ -109,7 +109,7 @@ public class WalletController {
 	public MoneyOperationResponse withdraw(@PathVariable String walletId, @Valid @RequestBody MoneyRequest request,
 			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		return MoneyOperationResponse
-				.from(ledgerService.withdraw(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
+				.from(commands.withdraw(readWalletId(walletId), readAmount(request), readIdempotencyKey(rawKey)));
 	}
 
 	private static Money readAmount(MoneyRequest request) {

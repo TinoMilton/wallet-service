@@ -3,6 +3,7 @@ package com.recargapay.wallet.repository;
 import com.recargapay.wallet.domain.LedgerEntry;
 import com.recargapay.wallet.domain.WalletId;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> {
+
+	@Query("select e from LedgerEntry e where e.operation.id = :operationId")
+	List<LedgerEntry> forOperation(@Param("operationId") UUID operationId);
 
 	@Query("select e from LedgerEntry e where e.wallet.id = :walletId order by e.sequence desc limit 1")
 	Optional<LedgerEntry> latestFor(WalletId walletId);

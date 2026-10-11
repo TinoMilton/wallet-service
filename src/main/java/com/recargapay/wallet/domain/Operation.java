@@ -56,4 +56,8 @@ public class Operation {
 	public OperationType type() {
 		return type;
 	}
+
+	public String requestFingerprint() {
+		return requestFingerprint;
+	}
 }

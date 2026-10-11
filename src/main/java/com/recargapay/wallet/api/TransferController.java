@@ -9,7 +9,7 @@ import com.recargapay.wallet.domain.exception.InvalidAmountException;
 import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
-import com.recargapay.wallet.service.LedgerService;
+import com.recargapay.wallet.service.IdempotentCommandExecutor;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/transfers")
 public class TransferController {
 
-	private final LedgerService ledgerService;
+	private final IdempotentCommandExecutor commands;
 
-	TransferController(LedgerService ledgerService) {
-		this.ledgerService = ledgerService;
+	TransferController(IdempotentCommandExecutor commands) {
+		this.commands = commands;
 	}
 
 	@PostMapping
@@ -36,7 +36,7 @@ public class TransferController {
 			@RequestHeader(name = "Idempotency-Key", required = false) String rawKey) {
 		WalletId from = readWalletId(request.fromWalletId());
 		WalletId to = readWalletId(request.toWalletId());
-		return TransferResponse.from(ledgerService.transfer(from, to, readAmount(request), readKey(rawKey)), to);
+		return TransferResponse.from(commands.transfer(from, to, readAmount(request), readKey(rawKey)), to);
 	}
 
 	private static WalletId readWalletId(String rawWalletId) {

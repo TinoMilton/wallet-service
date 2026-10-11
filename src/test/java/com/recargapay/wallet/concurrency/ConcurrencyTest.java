@@ -1,6 +1,7 @@
 package com.recargapay.wallet.concurrency;
 
 import static com.recargapay.wallet.support.ConcurrentCallers.runConcurrently;
+import static com.recargapay.wallet.support.IdempotencyActions.depositWithKey;
 import static com.recargapay.wallet.support.LedgerActions.aWalletWithBalance;
 import static com.recargapay.wallet.support.LedgerActions.deposit;
 import static com.recargapay.wallet.support.LedgerActions.withdraw;
@@ -11,9 +12,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.recargapay.wallet.domain.WalletId;
 import com.recargapay.wallet.support.IntegrationTest;
+import com.recargapay.wallet.support.IdempotencyAssertions;
 import com.recargapay.wallet.support.LedgerAssertions;
 import io.restassured.response.Response;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -23,6 +26,30 @@ class ConcurrencyTest extends IntegrationTest {
 
 	@Autowired
 	private LedgerAssertions ledger;
+
+	@Autowired
+	private IdempotencyAssertions idempotency;
+
+	@Test
+	@Timeout(120)
+	@DisplayName("BR-26: 100 identical simultaneous deposits return one operation and move money once")
+	void concurrentRetriesReplayOneDeposit() throws Exception {
+		WalletId wallet = aWallet();
+		String key = UUID.randomUUID().toString();
+
+		List<Response> responses = runConcurrently(100, caller -> depositWithKey(wallet, "1.00", key));
+
+		assertThat(responses).hasSize(100).allSatisfy(response -> {
+			response.then().statusCode(201);
+			assertThat(response.jsonPath().getUUID("operationId"))
+					.isEqualTo(responses.getFirst().jsonPath().getUUID("operationId"));
+		});
+		idempotency.assertOperationCount(key, 1);
+		idempotency.assertEntryCount(key, 1);
+		assertBalance(wallet, "1.00");
+		ledger.assertLedgerEntryCount(wallet, 1);
+		ledger.assertAuditInvariant(wallet);
+	}
 
 	@Test
 	@Timeout(120)

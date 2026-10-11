@@ -29,6 +29,14 @@ public final class SignedAmount {
 		return amount;
 	}
 
+	public boolean isDebit() {
+		return amount.signum() < 0;
+	}
+
+	public Money magnitude() {
+		return Money.of(amount.abs().toPlainString());
+	}
+
 	@Override
 	public String toString() {
 		return amount.toPlainString();

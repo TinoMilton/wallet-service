@@ -88,6 +88,10 @@ public class LedgerEntry {
 		return balanceAfter;
 	}
 
+	public WalletId walletId() {
+		return wallet.id();
+	}
+
 	/**
 	 * The operation that caused this entry. The ledger page fetches the operation
 	 * with its query; the lazy association could not be read once that read has

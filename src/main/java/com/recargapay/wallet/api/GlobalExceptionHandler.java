@@ -7,6 +7,7 @@ import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.InvalidPageRequestException;
 import com.recargapay.wallet.domain.exception.InvalidTimestampException;
 import com.recargapay.wallet.domain.exception.InsufficientFundsException;
+import com.recargapay.wallet.domain.exception.IdempotencyKeyReusedException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
 import com.recargapay.wallet.domain.exception.SameWalletTransferException;
@@ -42,6 +43,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(InsufficientFundsException.class)
 	public ProblemDetail insufficientFunds(InsufficientFundsException insufficientFunds) {
 		return problem(HttpStatus.UNPROCESSABLE_CONTENT, "INSUFFICIENT_FUNDS", insufficientFunds.getMessage());
+	}
+
+	@ExceptionHandler(IdempotencyKeyReusedException.class)
+	public ProblemDetail idempotencyKeyReused(IdempotencyKeyReusedException reused) {
+		return problem(HttpStatus.UNPROCESSABLE_CONTENT, "IDEMPOTENCY_KEY_REUSED", reused.getMessage());
 	}
 
 	@ExceptionHandler(WalletBusyException.class)

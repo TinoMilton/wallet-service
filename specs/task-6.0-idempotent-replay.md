@@ -26,12 +26,12 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 6.1 Implement `IdempotentCommandExecutor` with the replay path in a new transaction
-- [ ] 6.2 Rebuild the original response from the stored operation and its entries
-- [ ] 6.3 Route the three endpoints through the executor
-- [ ] 6.4 Map key reuse with a different request to its problem detail
-- [ ] 6.5 Write the tests for BR-21, BR-22 and BR-23
-- [ ] 6.6 Write the concurrency test for BR-26
+- [x] 6.1 Implement `IdempotentCommandExecutor` with the replay path in a new transaction
+- [x] 6.2 Rebuild the original response from the stored operation and its entries
+- [x] 6.3 Route the three endpoints through the executor
+- [x] 6.4 Map key reuse with a different request to its problem detail
+- [x] 6.5 Write the tests for BR-21, BR-22 and BR-23
+- [x] 6.6 Write the concurrency test for BR-26
 
 ## Implementation Details
 
