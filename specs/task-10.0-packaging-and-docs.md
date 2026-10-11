@@ -30,13 +30,13 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 10.1 Write the `Dockerfile` and add the application to `docker-compose.yml`
-- [ ] 10.2 Verify a clean `docker compose up` and exercise each endpoint against it
-- [ ] 10.3 Write the README sections on running and testing
-- [ ] 10.4 Write the design-choices, assumptions and trade-offs sections
-- [ ] 10.5 Review every task for anything cut or changed, and reconcile `techspec.md` and the README with what was built
-- [ ] 10.6 Run the full suite, record the coverage figures and the time spent
-- [ ] 10.7 Read the whole codebase once against section 9.1 of the tech spec and fix what does not read well
+- [x] 10.1 Write the `Dockerfile` and add the application to `docker-compose.yml`
+- [x] 10.2 Verify a clean `docker compose up` and exercise each endpoint against it
+- [x] 10.3 Write the README sections on running and testing
+- [x] 10.4 Write the design-choices, assumptions and trade-offs sections
+- [x] 10.5 Review every task for anything cut or changed, and reconcile `techspec.md` and the README with what was built
+- [x] 10.6 Run the full suite, record the coverage figures and the time spent
+- [x] 10.7 Read the whole codebase once against section 9.1 of the tech spec and fix what does not read well
 
 ## Implementation Details
 
@@ -57,9 +57,9 @@ None. The project has no `.claude/skills` directory.
 
 ## Task Tests
 
-- [ ] Unit tests: none new
-- [ ] Integration tests: none new; the full suite and the JaCoCo gate pass
-- [ ] E2E tests: not applicable; the compose stack is checked by hand in subtask 10.2
+- [x] Unit tests: none new
+- [x] Integration tests: none new; the full suite and the JaCoCo gate pass
+- [x] E2E tests: not applicable; the compose stack is checked by hand in subtask 10.2
 
 <critical>ALWAYS CREATE AND RUN THE TASK'S TESTS BEFORE CONSIDERING IT FINISHED</critical>
 

@@ -1,0 +1,14 @@
+# The image build needs only the Maven wrapper, the pom and the sources;
+# everything else is excluded so the build context stays small.
+.git
+target
+.idea
+.vscode
+*.iml
+.DS_Store
+docs
+specs
+AGENTS.md
+CLAUDE.md
+README.md
+docker-compose.yml

@@ -45,13 +45,13 @@ Each of these was considered and decided against. They are recorded here because
 | Tests | JUnit 5, Testcontainers (PostgreSQL), REST Assured, JaCoCo | Tests run against the real database engine; coverage of the whole application is measured and gated |
 | Packaging | Docker and docker-compose (one app, one Postgres) | `docker compose up` gives a working system |
 
-The exact Spring Boot 4.1.x patch version is confirmed when the project is scaffolded.
+The project is scaffolded on Spring Boot 4.1.1.
 
 ## 4. System Architecture
 
 ### Component Overview
 
-All components are new; the repository contains no code yet.
+All components are new.
 
 | Component | Responsibility |
 |---|---|
@@ -151,7 +151,7 @@ Base path: `/api/v1`. Bodies are JSON. Errors are RFC 7807 `application/problem+
 | `POST /wallets` | Create a wallet for a user | 201 | 400, 409 |
 | `GET /wallets/{walletId}/balance` | Current balance | 200 | 404 |
 | `GET /wallets/{walletId}/balance?at={ISO-8601}` | Balance at a past instant | 200 | 400, 404 |
-| `GET /wallets/{walletId}/entries?page=&size=` | Paged ledger, newest first | 200 | 404 |
+| `GET /wallets/{walletId}/entries?page=&size=` | Paged ledger, newest first | 200 | 400, 404 |
 | `POST /wallets/{walletId}/deposits` | Deposit | 201 | 400, 404, 422, 503 |
 | `POST /wallets/{walletId}/withdrawals` | Withdraw | 201 | 400, 404, 422, 503 |
 | `POST /transfers` | Transfer between wallets | 201 | 400, 404, 422, 503 |
@@ -192,9 +192,12 @@ The transfer response returns only the sender's resulting balance, because the c
 | 400 | `MISSING_IDEMPOTENCY_KEY` | Header absent on a money-moving endpoint |
 | 400 | `INVALID_TIMESTAMP` | `at` is malformed, has no offset, or is in the future |
 | 400 | `SAME_WALLET_TRANSFER` | Source and destination are the same wallet |
-| 400 | `INVALID_REQUEST` | Body is missing, malformed, or fails validation (for example a blank `userId`) |
+| 400 | `INVALID_REQUEST` | Body is missing, malformed, or fails validation (for example a blank `userId`, or an `Idempotency-Key` longer than 128 characters) |
 | 404 | `WALLET_NOT_FOUND` | Unknown wallet id, or `at` is before the wallet was created |
+| 404 | `ROUTE_NOT_FOUND` | No route matches the request |
+| 405 | `METHOD_NOT_ALLOWED` | The route does not accept the request's method |
 | 409 | `WALLET_ALREADY_EXISTS` | The user already has a wallet |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | The media type of the request body is not supported |
 | 422 | `INSUFFICIENT_FUNDS` | Withdrawal or transfer exceeds the balance |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | Key already used with a different request |
 | 503 | `WALLET_BUSY` | Lock wait exceeded the timeout; safe to retry with the same key |
@@ -203,19 +206,22 @@ The transfer response returns only the sender's resulting balance, because the c
 ### Main Interfaces
 
 ```java
-public interface WalletService {
+public class WalletService {
     Wallet create(String userId);
     Balance currentBalance(WalletId walletId);
     Balance balanceAt(WalletId walletId, Instant at);
     Page<LedgerEntry> entries(WalletId walletId, Pageable pageable);
 }
 
-public interface LedgerService {
+public class LedgerService {
     OperationResult deposit(WalletId walletId, Money amount, IdempotencyKey key);
     OperationResult withdraw(WalletId walletId, Money amount, IdempotencyKey key);
     OperationResult transfer(WalletId from, WalletId to, Money amount, IdempotencyKey key);
+    OperationResult replay(IdempotencyKey key, RequestFingerprint fingerprint);
 }
 ```
+
+`replay` is called only by `IdempotentCommandExecutor`, after a duplicate idempotency key fails the insert in the command transaction; it reads the committed operation in a fresh read-only transaction. The fingerprint travels as the domain type `RequestFingerprint` (a SHA-256 hex string), computed by `RequestFingerprints`.
 
 Services take and return domain types only. Controllers convert path and body values into domain types, and map results to response DTOs; a service never depends on an API type.
 
@@ -247,7 +253,7 @@ Each command is one database transaction. A transfer debits one wallet and credi
 - The ledger is the audit trail. Any balance, current or past, is explained by the chain of entries up to it, and each entry links to the operation that caused it.
 - Immutability is enforced in the database by trigger and in the application by entities with no setters, marked `@Immutable`.
 - `GET /wallets/{walletId}/entries` exposes the chain for audit.
-- Every log line and outbox payload carries the operation id.
+- Every operation's log line and every outbox payload carries the operation id.
 
 ### Outbox
 
@@ -261,7 +267,7 @@ Each command is one database transaction. A transfer debits one wallet and credi
 - The locking query is the first read of a wallet in the transaction, so the persistence context cannot return a stale instance.
 - `spring.jpa.open-in-view` is `false`.
 - `spring.jpa.hibernate.ddl-auto` is `validate`; Flyway is the only owner of the schema.
-- To verify during implementation: how the JPA lock-timeout hint behaves on PostgreSQL. `SET LOCAL lock_timeout` is the planned mechanism because the hint is not expected to give a millisecond wait there.
+- Verified during implementation (task 4.0): the JPA lock-timeout hint is ignored for positive values on PostgreSQL, so the transaction issues `SET LOCAL lock_timeout = '2s'` itself, in `LedgerService.setLockTimeout`.
 
 ## 8. Non-functional Posture
 
@@ -470,7 +476,7 @@ JaCoCo measures how much of the whole application the test suite executes. It co
 | Outbox delivery is at-least-once, relayed to a log. | Consumers may see duplicates, and no broker is exercised. | Events carry the operation id; the relay target is one class to replace. |
 | Single-entry ledger. | Money entering and leaving the system has no counterparty account. | Evolve to double-entry with system accounts. |
 | Idempotency keys are kept indefinitely. | The `operation` table grows with every operation. | It is also the operation record, so it is retained on purpose; partition by time at scale. |
-| The lock-timeout mechanism under JPA is unverified. | The planned `SET LOCAL lock_timeout` may need adjusting. | Verified in the first implementation block. |
+| The lock-timeout mechanism under JPA was unverified at design time. | A wrong mechanism could mean unbounded lock waits. | Verified in task 4.0: the JPA hint is ignored for positive values on PostgreSQL, and `SET LOCAL lock_timeout = '2s'` is used instead. |
 
 ### Standard Skills Compliance
 
@@ -497,6 +503,8 @@ Not applicable. The project has no `.claude/skills` directory.
 | 6 | Docker, README and design write-up | Required deliverables | 1h |
 
 Each block includes the tests for the business rules it implements; a block is not finished until its rules in section 9.2 are covered. The table totals 8 hours with no buffer. With full rule coverage, the concurrency tests and the coverage gate, the per-task estimates in `tasks.md` total about 10 hours.
+
+Measured afterwards, the implementation was built and committed in one sitting on 2026-10-11: the commits on the main branch span 12:16 to 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes. The estimates above were the plan, not a measurement. Design and specification time, before the first commit, is reported separately by the author.
 
 If time runs short, the outbox publisher and the ledger endpoint are cut first and recorded as trade-offs. Tests and readability are never what is cut: a feature is dropped whole, with its rules, before it is shipped untested. The actual time spent is reported in the README, as the assignment asks.
 

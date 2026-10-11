@@ -1,16 +1,42 @@
-# Local development database. `docker compose up -d` is all the service needs to run.
+# One command runs the whole system: `docker compose up --build` builds the
+# application image, starts PostgreSQL and waits for it to be healthy.
+#
+# The database service also stands on its own for local development:
+# `docker compose up -d postgres` starts just PostgreSQL, and the application's
+# own defaults in application.yml already point at localhost:5432.
+#
+# Every value a reviewer might need to change is an environment variable with a
+# default, so no file needs editing when a port or credential is taken:
+#   WALLET_APP_PORT    (default 8080)  host port for the application
+#   WALLET_DB_PORT     (default 5432)  host port for PostgreSQL
+#   POSTGRES_DB        (default wallet)
+#   POSTGRES_USER      (default wallet)
+#   POSTGRES_PASSWORD  (default wallet)
 services:
+  app:
+    build: .
+    container_name: wallet-app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-wallet}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-wallet}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-wallet}
+    ports:
+      - "${WALLET_APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
   postgres:
     image: postgres:18-alpine
     container_name: wallet-postgres
     environment:
-      POSTGRES_DB: wallet
-      POSTGRES_USER: wallet
-      POSTGRES_PASSWORD: wallet
+      POSTGRES_DB: ${POSTGRES_DB:-wallet}
+      POSTGRES_USER: ${POSTGRES_USER:-wallet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wallet}
     ports:
-      - "5432:5432"
+      - "${WALLET_DB_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wallet -d wallet"]
+      # $$ keeps the variable lookup inside the container, not in compose.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
