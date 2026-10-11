@@ -7,6 +7,7 @@ import com.recargapay.wallet.domain.exception.InvalidIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.InsufficientFundsException;
 import com.recargapay.wallet.domain.exception.MissingIdempotencyKeyException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
+import com.recargapay.wallet.domain.exception.SameWalletTransferException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -100,5 +101,10 @@ public class GlobalExceptionHandler {
 		problem.setTitle(status.getReasonPhrase());
 		problem.setProperty("code", code);
 		return problem;
+	}
+
+	@ExceptionHandler(SameWalletTransferException.class)
+	public ProblemDetail sameWalletTransfer(SameWalletTransferException sameWallet) {
+		return problem(HttpStatus.BAD_REQUEST, "SAME_WALLET_TRANSFER", sameWallet.getMessage());
 	}
 }

@@ -27,13 +27,13 @@ None. The project has no `.claude/skills` directory.
 
 ## Subtasks
 
-- [ ] 5.1 Implement ordered locking of two wallets
-- [ ] 5.2 Implement `LedgerService.transfer`
-- [ ] 5.3 Implement `TransferController`
-- [ ] 5.4 Add the test helper `transfer(from, to, amount)`
-- [ ] 5.5 Write the tests for BR-08, BR-09, BR-10, BR-11 (transfer) and BR-17 (transfer)
-- [ ] 5.6 Write the concurrency test for BR-25
-- [ ] 5.7 Write the randomised mixed-operations test for BR-19
+- [x] 5.1 Implement ordered locking of two wallets
+- [x] 5.2 Implement `LedgerService.transfer`
+- [x] 5.3 Implement `TransferController`
+- [x] 5.4 Add the test helper `transfer(from, to, amount)`
+- [x] 5.5 Write the tests for BR-08, BR-09, BR-10, BR-11 (transfer) and BR-17 (transfer)
+- [x] 5.6 Write the concurrency test for BR-25
+- [x] 5.7 Write the randomised mixed-operations test for BR-19
 
 ## Implementation Details
 

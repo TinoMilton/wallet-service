@@ -4,6 +4,7 @@ import static com.recargapay.wallet.support.ConcurrentCallers.runConcurrently;
 import static com.recargapay.wallet.support.LedgerActions.aWalletWithBalance;
 import static com.recargapay.wallet.support.LedgerActions.deposit;
 import static com.recargapay.wallet.support.LedgerActions.withdraw;
+import static com.recargapay.wallet.support.TransferActions.transfer;
 import static com.recargapay.wallet.support.WalletActions.aWallet;
 import static com.recargapay.wallet.support.WalletAssertions.assertBalance;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,6 +51,23 @@ class ConcurrencyTest extends IntegrationTest {
 		assertBalance(wallet, "100.00");
 		ledger.assertContiguousSequences(wallet, 100);
 		ledger.assertAuditInvariant(wallet);
+	}
+
+	@Test
+	@Timeout(120)
+	@DisplayName("BR-25: 50 opposing transfers each way complete without deadlock and conserve the total")
+	void opposingTransfersConserveTheTotal() throws Exception {
+		WalletId first = aWalletWithBalance("100.00");
+		WalletId second = aWalletWithBalance("100.00");
+
+		List<Response> responses = runConcurrently(100,
+				caller -> caller < 50 ? transfer(first, second, "1.00") : transfer(second, first, "1.00"));
+
+		assertThat(responses).hasSize(100).allSatisfy(response -> response.then().statusCode(201));
+		assertBalance(first, "100.00");
+		assertBalance(second, "100.00");
+		ledger.assertAuditInvariant(first);
+		ledger.assertAuditInvariant(second);
 	}
 
 	private void assertResponses(List<Response> responses, int created, int insufficient) {
