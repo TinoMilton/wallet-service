@@ -72,6 +72,15 @@ class OperationalEndpointsTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("9.1: the Prometheus endpoint also serves the outbox gauges")
+	void prometheusEndpointServesTheOutboxGauges() {
+		Response metrics = given().when().get("/actuator/prometheus");
+
+		metrics.then().statusCode(200);
+		assertThat(metrics.asString()).contains("wallet_outbox_unpublished", "wallet_outbox_lag_seconds");
+	}
+
+	@Test
 	@DisplayName("9.4: Swagger UI is served")
 	void swaggerUiIsServed() {
 		Response ui = given().when().get("/swagger-ui/index.html");
