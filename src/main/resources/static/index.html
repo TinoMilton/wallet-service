@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- An empty inline icon: without it the browser asks for /favicon.ico and
+       logs a 404 console error, because unknown routes answer ROUTE_NOT_FOUND. -->
+  <link rel="icon" href="data:,">
   <title>Wallet Service — manual test console</title>
   <style>
     :root {
@@ -105,6 +108,11 @@
       border-color: var(--muted);
     }
 
+    button:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+
     .hint {
       margin: 0;
       color: var(--muted);
@@ -174,10 +182,14 @@
       overflow-wrap: anywhere;
     }
 
+    #entries-page-indicator {
+      margin: 0.75rem 0 0;
+    }
+
     .pager {
       display: flex;
       gap: 0.5rem;
-      margin-top: 0.75rem;
+      margin-top: 0.5rem;
     }
 
     #request-log .log-entry {
@@ -369,6 +381,7 @@
           <tbody id="ledger-rows"></tbody>
         </table>
       </div>
+      <p id="entries-page-indicator" class="hint"></p>
       <div class="pager">
         <button id="entries-previous" type="button">Previous page</button>
         <button id="entries-next" type="button">Next page</button>
@@ -387,6 +400,70 @@
     const API = '/api/v1';
     const LEDGER_PAGE_SIZE = 5;
     const LOG_LENGTH = 50;
+
+    // ---------- The elements the console works through ----------
+
+    // Every element is looked up explicitly. A browser exposes an id as a
+    // global only under its exact spelling, which a camelCase name never
+    // matches, so relying on that fails with a ReferenceError at start-up.
+    function theElementWithId(elementId) {
+      const element = document.getElementById(elementId);
+      if (element === null) {
+        throw new Error('the console is missing its element with id ' + elementId);
+      }
+      return element;
+    }
+
+    const createUserId = theElementWithId('create-user-id');
+    const createWalletButton = theElementWithId('create-wallet-button');
+    const adoptWalletIdInput = theElementWithId('adopt-wallet-id');
+    const adoptWalletButton = theElementWithId('adopt-wallet-button');
+    const knownWalletsList = theElementWithId('known-wallets');
+    const createResult = theElementWithId('create-result');
+
+    const depositWallet = theElementWithId('deposit-wallet');
+    const depositAmount = theElementWithId('deposit-amount');
+    const depositKey = theElementWithId('deposit-key');
+    const keepDepositKey = theElementWithId('keep-deposit-key');
+    const depositButton = theElementWithId('deposit-button');
+    const depositResult = theElementWithId('deposit-result');
+
+    const withdrawalWallet = theElementWithId('withdrawal-wallet');
+    const withdrawalAmount = theElementWithId('withdrawal-amount');
+    const withdrawalKey = theElementWithId('withdrawal-key');
+    const keepWithdrawalKey = theElementWithId('keep-withdrawal-key');
+    const withdrawalButton = theElementWithId('withdrawal-button');
+    const withdrawalResult = theElementWithId('withdrawal-result');
+
+    const transferFrom = theElementWithId('transfer-from');
+    const transferTo = theElementWithId('transfer-to');
+    const transferAmount = theElementWithId('transfer-amount');
+    const transferKey = theElementWithId('transfer-key');
+    const keepTransferKey = theElementWithId('keep-transfer-key');
+    const transferButton = theElementWithId('transfer-button');
+    const transferResult = theElementWithId('transfer-result');
+
+    const balanceWallet = theElementWithId('balance-wallet');
+    const balanceButton = theElementWithId('balance-button');
+    const balanceResult = theElementWithId('balance-result');
+
+    const balanceAtWallet = theElementWithId('balance-at-wallet');
+    const balanceAtInstant = theElementWithId('balance-at-instant');
+    const balanceAtOverride = theElementWithId('balance-at-override');
+    const balanceAtButton = theElementWithId('balance-at-button');
+    const balanceAtResult = theElementWithId('balance-at-result');
+
+    const entriesWallet = theElementWithId('entries-wallet');
+    const entriesButton = theElementWithId('entries-button');
+    const ledgerRows = theElementWithId('ledger-rows');
+    const entriesPageIndicator = theElementWithId('entries-page-indicator');
+    const entriesPrevious = theElementWithId('entries-previous');
+    const entriesNext = theElementWithId('entries-next');
+
+    const requestLog = theElementWithId('request-log');
+
+    const walletChoices = [depositWallet, withdrawalWallet, transferFrom, transferTo, balanceWallet, balanceAtWallet,
+      entriesWallet];
 
     // ---------- The one place a request goes out and into the log ----------
 
@@ -423,7 +500,7 @@
 
       const summary = document.createElement('p');
       summary.className = 'log-summary';
-      const code = displayedValue(fieldValueInText(bodyText, 'code'));
+      const code = textWithoutQuotesIn(bodyText, 'code');
       summary.textContent = method + ' ' + path + ' → HTTP ' + status + (code ? ' (' + code + ')' : '');
       entry.append(summary);
 
@@ -454,7 +531,7 @@
     // become a JavaScript float there and lose the exact digits the server
     // sent (10.50 would turn into 10.5). The responses are flat objects, so a
     // field's value ends at the first comma or closing brace after it.
-    function fieldValueInText(objectText, fieldName) {
+    function rawValueOfIn(objectText, fieldName) {
       const marker = '"' + fieldName + '":';
       const markerAt = objectText.indexOf(marker);
       if (markerAt === -1) {
@@ -475,9 +552,17 @@
       return Math.min(firstPosition, secondPosition);
     }
 
-    // String values carry their JSON quotes; numbers never do.
-    function displayedValue(rawValue) {
-      if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+    // A monetary value: the literal text the server sent, never through a
+    // JavaScript number, so 10.50 stays 10.50.
+    function amountAsSentIn(objectText, fieldName) {
+      return rawValueOfIn(objectText, fieldName);
+    }
+
+    // A string value: the same text with its JSON quotes removed, so a wallet
+    // id read from a response is a plain id, not "…id with quotes…".
+    function textWithoutQuotesIn(objectText, fieldName) {
+      const rawValue = rawValueOfIn(objectText, fieldName);
+      if (rawValue.startsWith('"') && rawValue.endsWith('"') && rawValue.length >= 2) {
         return rawValue.substring(1, rawValue.length - 1);
       }
       return rawValue;
@@ -570,7 +655,7 @@
     }
 
     function refillWalletChoices() {
-      for (const choices of document.querySelectorAll('select[data-wallet-choices]')) {
+      for (const choices of walletChoices) {
         const previouslyChosen = choices.value;
         choices.replaceChildren(...knownWallets.map(walletOption));
         if (Array.from(choices.options).some((option) => option.value === previouslyChosen)) {
@@ -598,7 +683,7 @@
       const result = await sendAndLog('POST', API + '/wallets', bodyText, null);
       createResult.textContent = result.bodyText;
       if (result.status === 201) {
-        addKnownWallet(fieldValueInText(result.bodyText, 'walletId'), fieldValueInText(result.bodyText, 'userId'));
+        addKnownWallet(textWithoutQuotesIn(result.bodyText, 'walletId'), textWithoutQuotesIn(result.bodyText, 'userId'));
       }
     }
 
@@ -678,13 +763,12 @@
       const result = await sendAndLog('GET', path, null, null);
       if (result.status === 200) {
         renderLedgerTable(result.bodyText);
+        updateLedgerPager(result.bodyText);
       }
     }
 
     async function showPreviousLedgerPage() {
-      if (ledgerPage > 0) {
-        ledgerPage -= 1;
-      }
+      ledgerPage -= 1;
       await showLedgerPage();
     }
 
@@ -706,14 +790,34 @@
       ledgerRows.replaceChildren(...textOfEachEntryIn(bodyText).map(ledgerRow));
     }
 
+    function updateLedgerPager(bodyText) {
+      // Page numbers and entry counts are not money, so Number is safe here.
+      const page = Number(amountAsSentIn(bodyText, 'page'));
+      const pageSize = Number(amountAsSentIn(bodyText, 'size'));
+      const totalEntries = Number(amountAsSentIn(bodyText, 'totalEntries'));
+      const lastPage = Math.max(0, Math.ceil(totalEntries / pageSize) - 1);
+
+      entriesPageIndicator.textContent = 'page ' + (page + 1) + ' of ' + (lastPage + 1) + ', ' + totalEntries
+          + ' entries in total';
+      entriesPrevious.disabled = page === 0;
+      entriesNext.disabled = page >= lastPage;
+    }
+
     function ledgerRow(entryText) {
       const row = document.createElement('tr');
-      for (const field of ['seq', 'operationId', 'type', 'amountSigned', 'balanceAfter', 'createdAt']) {
-        const cell = document.createElement('td');
-        cell.textContent = displayedValue(fieldValueInText(entryText, field));
-        row.append(cell);
-      }
+      appendCell(row, amountAsSentIn(entryText, 'seq'));
+      appendCell(row, textWithoutQuotesIn(entryText, 'operationId'));
+      appendCell(row, textWithoutQuotesIn(entryText, 'type'));
+      appendCell(row, amountAsSentIn(entryText, 'amountSigned'));
+      appendCell(row, amountAsSentIn(entryText, 'balanceAfter'));
+      appendCell(row, textWithoutQuotesIn(entryText, 'createdAt'));
       return row;
+    }
+
+    function appendCell(row, cellText) {
+      const cell = document.createElement('td');
+      cell.textContent = cellText;
+      row.append(cell);
     }
 
     // Every entry is a flat object, so its text runs from an opening brace to
