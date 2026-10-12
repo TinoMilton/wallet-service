@@ -154,6 +154,8 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - 10.0 accepted — Droid `glm-5.3` `-r high`; compose stack built on `eclipse-temurin:25` images and exercised with curl (all seven endpoints, a rejection, an idempotent replay, readiness, Prometheus, API docs), then torn down; README written; tech spec reconciled with the code; readability pass added the `RequestFingerprint` domain type; `./mvnw verify` BUILD SUCCESS, 127 tests, 96.39% line / 87.50% branch, ConcurrencyTest 5/5, commits `dee652b` and `cba395d`. Open, minor: metric names are registered with underscores in `OperationMetrics` and dots in `OutboxMetrics` (served output is identical).
 - All ten tasks accepted. Final independent gate passed (Droid `glm-5.3-flash`, on `f652544`): `./mvnw verify` BUILD SUCCESS, 127 tests, 0 failures, 0 skipped; 96.39% line / 87.50% branch recomputed from `jacoco.csv`; every rule BR-01 to BR-29 has at least one test; no sleeps, disabled tests or mocks in `src/test`; `docker compose config` valid.
 
+- Task 11.0 (added after the plan, at the author's request): manual test console, one static page at `/` (`static/index.html`), no dependency or Java change. Droid `glm-5.3`, reviewed by Codex. The first delivery was verified only with curl and did not work in a browser (undeclared element references, wallet ids stored with quotes); fixed in the same session and accepted on `9ed1c78` after a headless-Chrome run of the served page passed 15/15 steps with no page or console error. `./mvnw verify` BUILD SUCCESS, 128 tests, 96.39% line / 87.50% branch.
+
 ## Rules for Every Task
 
 - Follow `techspec.md` section 9.1: the code is written for humans to read.
