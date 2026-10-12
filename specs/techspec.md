@@ -406,7 +406,7 @@ The risk in this service sits in locks, constraints and transactions, so most ru
 
 **End-to-end tests**
 
-Not applicable. There is no frontend, and the integration tests already exercise the full stack through HTTP.
+Not applicable. The integration tests already exercise the full stack through HTTP. The only front end is a static manual test console served at `/` (`src/main/resources/static/index.html`), a tool for exercising the API by hand; it is not a product feature.
 
 ### 9.5 Concurrency Tests on Virtual Threads
 

@@ -40,6 +40,10 @@ For example, when 8080 is taken: `WALLET_APP_PORT=9090 docker compose up --build
 
 The database service also stands on its own for local development: `docker compose up -d postgres` starts just PostgreSQL, and the application's own defaults already point at `localhost:5432`.
 
+### Manual test console
+
+With the stack up, the application serves a manual test console at `http://localhost:8080/` (the `WALLET_APP_PORT` host port when it is set). It is a test tool, not part of the product API. From it you can create wallets, deposit, withdraw and transfer, read the current and a past balance, and page through a wallet's ledger, with every request logged together with its status, problem code and request id. Each money-moving form carries an `Idempotency-Key` and a "keep key" checkbox: with the key kept, sending the same deposit twice shows the replay return the original result, and changing the amount with the same key shows the `IDEMPOTENCY_KEY_REUSED` rejection. Choosing the same wallet as both ends of a transfer shows the `SAME_WALLET_TRANSFER` rejection.
+
 Run the tests (needs Docker; they use a real PostgreSQL through Testcontainers):
 
 ```bash
@@ -325,7 +329,8 @@ The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-
 │   └── service/                WalletService, LedgerService, IdempotentCommandExecutor, RequestFingerprints
 ├── src/main/resources/
 │   ├── application.yml         datasource, virtual threads, actuator, outbox settings
-│   └── db/migration/           Flyway migrations (schema, immutability trigger)
+│   ├── db/migration/           Flyway migrations (schema, immutability trigger)
+│   └── static/index.html       the manual test console served at /
 ├── src/test/java/com/recargapay/wallet/    tests by concern, shared helpers in support/
 └── specs/                      prd.md, techspec.md, tasks.md, task files
 ```

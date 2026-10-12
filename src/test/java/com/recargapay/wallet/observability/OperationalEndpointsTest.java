@@ -87,4 +87,13 @@ class OperationalEndpointsTest extends IntegrationTest {
 
 		ui.then().statusCode(200);
 	}
+
+	@Test
+	@DisplayName("the manual test console is served at / as HTML")
+	void manualTestConsoleIsServed() {
+		Response console = given().when().get("/");
+
+		console.then().statusCode(200);
+		assertThat(console.getContentType()).contains("text/html");
+	}
 }

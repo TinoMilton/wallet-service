@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wallet Service — manual test console</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --text: #1b1f24;
+      --background: #ffffff;
+      --muted: #5f6672;
+      --line: #d9dce1;
+      --success: #1a7f37;
+      --rejection: #b42318;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #e6e8eb;
+        --background: #101214;
+        --muted: #9aa2ad;
+        --line: #31363d;
+        --success: #4ac26b;
+        --rejection: #f07167;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--background);
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      margin: 0 0 0.75rem;
+    }
+
+    header {
+      padding-bottom: 1rem;
+    }
+
+    section {
+      border-top: 1px solid var(--line);
+      padding: 1rem 0;
+    }
+
+    #console-note {
+      margin: 0.5rem 0;
+      font-weight: 600;
+    }
+
+    #service-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    button {
+      cursor: pointer;
+      align-self: flex-start;
+    }
+
+    input:hover,
+    select:hover,
+    button:hover {
+      border-color: var(--muted);
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 400;
+    }
+
+    .check-field {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .check-field input {
+      width: 1rem;
+      height: 1rem;
+      padding: 0;
+    }
+
+    .result {
+      margin: 0.75rem 0 0;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    #known-wallets {
+      margin: 0.75rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #known-wallets li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--line);
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      overflow-wrap: anywhere;
+    }
+
+    #known-wallets button {
+      padding: 0.1rem 0.4rem;
+      font-size: 0.8rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 0.35rem 0.4rem;
+      border-bottom: 1px solid var(--line);
+      overflow-wrap: anywhere;
+    }
+
+    .pager {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    #request-log .log-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--line);
+    }
+
+    #request-log .success {
+      border-left: 3px solid var(--success);
+    }
+
+    #request-log .rejected {
+      border-left: 3px solid var(--rejection);
+    }
+
+    #request-log .success .log-summary {
+      color: var(--success);
+    }
+
+    #request-log .rejected .log-summary {
+      color: var(--rejection);
+    }
+
+    .log-summary {
+      margin: 0;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .log-request-id {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      overflow-wrap: anywhere;
+    }
+
+    .log-body {
+      margin: 0.25rem 0 0;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wallet Service</h1>
+    <p id="console-note">This page is a manual test console for the Wallet Service API. It is not part of the product API.</p>
+    <nav id="service-links">
+      <a href="/swagger-ui/index.html">Swagger UI</a>
+      <a href="/v3/api-docs">OpenAPI document</a>
+      <a href="/actuator/health/readiness">Readiness probe</a>
+      <a href="/actuator/prometheus">Prometheus endpoint</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="wallets">
+      <h2>Wallets</h2>
+      <div class="field">
+        <label for="create-user-id">Create a wallet for a user id</label>
+        <input id="create-user-id" type="text" autocomplete="off" placeholder="user-123">
+      </div>
+      <button id="create-wallet-button" type="button">Create wallet</button>
+      <div class="field">
+        <label for="adopt-wallet-id">Adopt an existing wallet id <span class="hint">a wallet created earlier, pasted in</span></label>
+        <input id="adopt-wallet-id" type="text" autocomplete="off" placeholder="9f2ac48e-…">
+      </div>
+      <button id="adopt-wallet-button" type="button">Adopt wallet</button>
+      <ul id="known-wallets"></ul>
+      <p class="result" id="create-result"></p>
+    </section>
+
+    <section id="deposit">
+      <h2>Deposit</h2>
+      <div class="field">
+        <label for="deposit-wallet">Wallet</label>
+        <select id="deposit-wallet" data-wallet-choices></select>
+      </div>
+      <div class="field">
+        <label for="deposit-amount">Amount <span class="hint">sent to the server exactly as typed, never rounded</span></label>
+        <input id="deposit-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="10.50">
+      </div>
+      <div class="field">
+        <label for="deposit-key">Idempotency-Key <span class="hint">empty sends no header at all</span></label>
+        <input id="deposit-key" type="text" autocomplete="off">
+      </div>
+      <div class="field check-field">
+        <input id="keep-deposit-key" type="checkbox">
+        <label for="keep-deposit-key">keep key, to replay this request or reuse it with another amount</label>
+      </div>
+      <button id="deposit-button" type="button">Deposit</button>
+      <p class="result" id="deposit-result"></p>
+    </section>
+
+    <section id="withdrawal">
+      <h2>Withdrawal</h2>
+      <div class="field">
+        <label for="withdrawal-wallet">Wallet</label>
+        <select id="withdrawal-wallet" data-wallet-choices></select>
+      </div>
+      <div class="field">
+        <label for="withdrawal-amount">Amount <span class="hint">sent to the server exactly as typed, never rounded</span></label>
+        <input id="withdrawal-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="25.00">
+      </div>
+      <div class="field">
+        <label for="withdrawal-key">Idempotency-Key <span class="hint">empty sends no header at all</span></label>
+        <input id="withdrawal-key" type="text" autocomplete="off">
+      </div>
+      <div class="field check-field">
+        <input id="keep-withdrawal-key" type="checkbox">
+        <label for="keep-withdrawal-key">keep key, to replay this request or reuse it with another amount</label>
+      </div>
+      <button id="withdrawal-button" type="button">Withdraw</button>
+      <p class="result" id="withdrawal-result"></p>
+    </section>
+
+    <section id="transfer">
+      <h2>Transfer</h2>
+      <div class="field">
+        <label for="transfer-from">From wallet</label>
+        <select id="transfer-from" data-wallet-choices></select>
+      </div>
+      <div class="field">
+        <label for="transfer-to">To wallet <span class="hint">choosing the same wallet twice shows the SAME_WALLET_TRANSFER rejection</span></label>
+        <select id="transfer-to" data-wallet-choices></select>
+      </div>
+      <div class="field">
+        <label for="transfer-amount">Amount <span class="hint">sent to the server exactly as typed, never rounded</span></label>
+        <input id="transfer-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="40.00">
+      </div>
+      <div class="field">
+        <label for="transfer-key">Idempotency-Key <span class="hint">empty sends no header at all</span></label>
+        <input id="transfer-key" type="text" autocomplete="off">
+      </div>
+      <div class="field check-field">
+        <input id="keep-transfer-key" type="checkbox">
+        <label for="keep-transfer-key">keep key, to replay this request or reuse it with another amount</label>
+      </div>
+      <button id="transfer-button" type="button">Transfer</button>
+      <p class="result" id="transfer-result"></p>
+    </section>
+
+    <section id="balance">
+      <h2>Balance</h2>
+      <div class="field">
+        <label for="balance-wallet">Wallet</label>
+        <select id="balance-wallet" data-wallet-choices></select>
+      </div>
+      <button id="balance-button" type="button">Show current balance</button>
+      <p class="result" id="balance-result"></p>
+      <div class="field">
+        <label for="balance-at-wallet">Wallet</label>
+        <select id="balance-at-wallet" data-wallet-choices></select>
+      </div>
+      <div class="field">
+        <label for="balance-at-instant">Past instant <span class="hint">local time, sent as ISO-8601 in UTC</span></label>
+        <input id="balance-at-instant" type="datetime-local">
+      </div>
+      <div class="field">
+        <label for="balance-at-override">Instant override <span class="hint">wins whenever it has text, so a malformed or future timestamp can be sent on purpose</span></label>
+        <input id="balance-at-override" type="text" autocomplete="off" placeholder="2026-10-11T18:30:02.789409136Z">
+      </div>
+      <button id="balance-at-button" type="button">Show balance at that instant</button>
+      <p class="result" id="balance-at-result"></p>
+    </section>
+
+    <section id="ledger">
+      <h2>Ledger entries</h2>
+      <div class="field">
+        <label for="entries-wallet">Wallet</label>
+        <select id="entries-wallet" data-wallet-choices></select>
+      </div>
+      <button id="entries-button" type="button">Show ledger</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>seq</th>
+              <th>operationId</th>
+              <th>type</th>
+              <th>amount signed</th>
+              <th>balance after</th>
+              <th>recorded at</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-rows"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button id="entries-previous" type="button">Previous page</button>
+        <button id="entries-next" type="button">Next page</button>
+      </div>
+    </section>
+
+    <section id="request-log-section">
+      <h2>Request log</h2>
+      <div id="request-log"></div>
+    </section>
+  </main>
+
+  <script>
+    'use strict';
+
+    const API = '/api/v1';
+    const LEDGER_PAGE_SIZE = 5;
+    const LOG_LENGTH = 50;
+
+    // ---------- The one place a request goes out and into the log ----------
+
+    async function sendAndLog(method, path, bodyText, idempotencyKey) {
+      const headers = {};
+      if (bodyText !== null) {
+        headers['Content-Type'] = 'application/json';
+      }
+      // An empty key field sends no header at all, so the server's
+      // MISSING_IDEMPOTENCY_KEY rejection can be seen.
+      if (idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+
+      let response;
+      try {
+        response = await fetch(path, { method: method, headers: headers, body: bodyText });
+      } catch (neverReachedTheServer) {
+        const failed = { status: 0, bodyText: 'the request never reached the server' };
+        recordRequestInLog(method, path, failed.status, failed.bodyText, null);
+        return failed;
+      }
+
+      const responseText = await response.text();
+      const requestId = response.headers.get('X-Request-Id');
+      recordRequestInLog(method, path, response.status, responseText, requestId);
+      return { status: response.status, bodyText: responseText };
+    }
+
+    function recordRequestInLog(method, path, status, bodyText, requestId) {
+      const entry = document.createElement('div');
+      // A status below 400 is a success; anything else is a rejection.
+      entry.className = status < 400 ? 'log-entry success' : 'log-entry rejected';
+
+      const summary = document.createElement('p');
+      summary.className = 'log-summary';
+      const code = displayedValue(fieldValueInText(bodyText, 'code'));
+      summary.textContent = method + ' ' + path + ' → HTTP ' + status + (code ? ' (' + code + ')' : '');
+      entry.append(summary);
+
+      const idLine = document.createElement('p');
+      idLine.className = 'log-request-id';
+      idLine.textContent = 'request id: ' + (requestId || 'none');
+      entry.append(idLine);
+
+      const body = document.createElement('p');
+      body.className = 'log-body';
+      body.textContent = bodyText;
+      entry.append(body);
+
+      requestLog.prepend(entry);
+      keepOnlyNewestLogEntries();
+    }
+
+    function keepOnlyNewestLogEntries() {
+      // The log is a working memory for the last few requests, not a history.
+      while (requestLog.children.length > LOG_LENGTH) {
+        requestLog.lastChild.remove();
+      }
+    }
+
+    // ---------- Reading values out of a response, as text ----------
+
+    // Responses are read as text, not through JSON.parse: an amount would
+    // become a JavaScript float there and lose the exact digits the server
+    // sent (10.50 would turn into 10.5). The responses are flat objects, so a
+    // field's value ends at the first comma or closing brace after it.
+    function fieldValueInText(objectText, fieldName) {
+      const marker = '"' + fieldName + '":';
+      const markerAt = objectText.indexOf(marker);
+      if (markerAt === -1) {
+        return '';
+      }
+      const valueStartsAt = markerAt + marker.length;
+      const valueEndsAt = earlierOf(objectText.indexOf(',', valueStartsAt), objectText.indexOf('}', valueStartsAt));
+      return objectText.substring(valueStartsAt, valueEndsAt).trim();
+    }
+
+    function earlierOf(firstPosition, secondPosition) {
+      if (firstPosition === -1) {
+        return secondPosition;
+      }
+      if (secondPosition === -1) {
+        return firstPosition;
+      }
+      return Math.min(firstPosition, secondPosition);
+    }
+
+    // String values carry their JSON quotes; numbers never do.
+    function displayedValue(rawValue) {
+      if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+        return rawValue.substring(1, rawValue.length - 1);
+      }
+      return rawValue;
+    }
+
+    // ---------- Request bodies ----------
+
+    // The amount goes into the body as the literal digits typed, so 10.505,
+    // -1 or 1e3 reach the server unchanged and its validation is what answers.
+    function moneyRequestBody(amountAsTyped) {
+      return '{"amount":' + amountAsTyped + '}';
+    }
+
+    function transferRequestBody(fromWalletId, toWalletId, amountAsTyped) {
+      // Wallet ids are UUIDs, so they need no escaping.
+      return '{"fromWalletId":"' + fromWalletId + '","toWalletId":"' + toWalletId + '","amount":' + amountAsTyped + '}';
+    }
+
+    // A datetime-local value carries no offset; it is read in the browser's
+    // zone and sent as UTC, which is the explicit offset the API requires.
+    function isoWithOffsetFrom(dateTimeLocalValue) {
+      if (!dateTimeLocalValue) {
+        return '';
+      }
+      return new Date(dateTimeLocalValue).toISOString();
+    }
+
+    // ---------- The known wallets ----------
+
+    let knownWallets = [];
+    let ledgerPage = 0;
+
+    function loadKnownWallets() {
+      try {
+        const saved = localStorage.getItem('wallet-console-known-wallets');
+        return saved ? JSON.parse(saved) : [];
+      } catch (unavailable) {
+        // localStorage can be blocked or unavailable; the console still works,
+        // only the list does not survive a reload.
+        return [];
+      }
+    }
+
+    function saveKnownWallets() {
+      try {
+        localStorage.setItem('wallet-console-known-wallets', JSON.stringify(knownWallets));
+      } catch (unavailable) {
+        // Same reason as above: saving is best effort.
+      }
+    }
+
+    function addKnownWallet(walletId, userId) {
+      knownWallets.push({ walletId: walletId, userId: userId });
+      saveKnownWallets();
+      renderKnownWallets();
+      refillWalletChoices();
+    }
+
+    function forgetWallet(walletId) {
+      knownWallets = knownWallets.filter((wallet) => wallet.walletId !== walletId);
+      saveKnownWallets();
+      renderKnownWallets();
+      refillWalletChoices();
+    }
+
+    function renderKnownWallets() {
+      if (knownWallets.length === 0) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No wallet known yet. Create one above, or paste an existing wallet id in.';
+        knownWalletsList.replaceChildren(empty);
+        return;
+      }
+      knownWalletsList.replaceChildren(...knownWallets.map(walletListItem));
+    }
+
+    function walletListItem(wallet) {
+      const item = document.createElement('li');
+
+      const label = document.createElement('span');
+      label.textContent = wallet.walletId + ' — ' + wallet.userId;
+      item.append(label);
+
+      const forget = document.createElement('button');
+      forget.type = 'button';
+      forget.textContent = 'forget';
+      forget.addEventListener('click', () => forgetWallet(wallet.walletId));
+      item.append(forget);
+
+      return item;
+    }
+
+    function refillWalletChoices() {
+      for (const choices of document.querySelectorAll('select[data-wallet-choices]')) {
+        const previouslyChosen = choices.value;
+        choices.replaceChildren(...knownWallets.map(walletOption));
+        if (Array.from(choices.options).some((option) => option.value === previouslyChosen)) {
+          choices.value = previouslyChosen;
+        }
+      }
+    }
+
+    function walletOption(wallet) {
+      const option = document.createElement('option');
+      option.value = wallet.walletId;
+      option.textContent = wallet.userId + ' · ' + wallet.walletId.substring(0, 8);
+      return option;
+    }
+
+    function noWalletChosen(resultElement) {
+      resultElement.textContent = 'No wallet chosen. Create or adopt one in "Wallets" first.';
+    }
+
+    // ---------- What each form does ----------
+
+    async function createWalletFor(userIdAsTyped) {
+      // Only money must stay out of JavaScript numbers; a user id is a string.
+      const bodyText = JSON.stringify({ userId: userIdAsTyped });
+      const result = await sendAndLog('POST', API + '/wallets', bodyText, null);
+      createResult.textContent = result.bodyText;
+      if (result.status === 201) {
+        addKnownWallet(fieldValueInText(result.bodyText, 'walletId'), fieldValueInText(result.bodyText, 'userId'));
+      }
+    }
+
+    function adoptWalletById(pastedWalletId) {
+      addKnownWallet(pastedWalletId, 'unknown');
+      adoptWalletIdInput.value = '';
+      createResult.textContent = 'Wallet ' + pastedWalletId + ' adopted.';
+    }
+
+    async function depositInto() {
+      const walletId = depositWallet.value;
+      if (!walletId) {
+        noWalletChosen(depositResult);
+        return;
+      }
+      const result = await sendAndLog('POST', API + '/wallets/' + walletId + '/deposits',
+          moneyRequestBody(depositAmount.value.trim()), depositKey.value.trim());
+      depositResult.textContent = result.bodyText;
+      refreshKeyAfterSuccess(result, depositKey, keepDepositKey);
+    }
+
+    async function withdrawFrom() {
+      const walletId = withdrawalWallet.value;
+      if (!walletId) {
+        noWalletChosen(withdrawalResult);
+        return;
+      }
+      const result = await sendAndLog('POST', API + '/wallets/' + walletId + '/withdrawals',
+          moneyRequestBody(withdrawalAmount.value.trim()), withdrawalKey.value.trim());
+      withdrawalResult.textContent = result.bodyText;
+      refreshKeyAfterSuccess(result, withdrawalKey, keepWithdrawalKey);
+    }
+
+    async function transferBetween() {
+      const fromWalletId = transferFrom.value;
+      const toWalletId = transferTo.value;
+      if (!fromWalletId || !toWalletId) {
+        noWalletChosen(transferResult);
+        return;
+      }
+      const result = await sendAndLog('POST', API + '/transfers',
+          transferRequestBody(fromWalletId, toWalletId, transferAmount.value.trim()), transferKey.value.trim());
+      transferResult.textContent = result.bodyText;
+      refreshKeyAfterSuccess(result, transferKey, keepTransferKey);
+    }
+
+    async function showCurrentBalance() {
+      const walletId = balanceWallet.value;
+      if (!walletId) {
+        noWalletChosen(balanceResult);
+        return;
+      }
+      const result = await sendAndLog('GET', API + '/wallets/' + walletId + '/balance', null, null);
+      balanceResult.textContent = result.bodyText;
+    }
+
+    async function showBalanceAt() {
+      const walletId = balanceAtWallet.value;
+      if (!walletId) {
+        noWalletChosen(balanceAtResult);
+        return;
+      }
+      // The override wins whenever it has text, so a malformed or future
+      // timestamp can be sent on purpose.
+      const atAsTyped = balanceAtOverride.value.trim() || isoWithOffsetFrom(balanceAtInstant.value);
+      const path = API + '/wallets/' + walletId + '/balance?at=' + encodeURIComponent(atAsTyped);
+      const result = await sendAndLog('GET', path, null, null);
+      balanceAtResult.textContent = result.bodyText;
+    }
+
+    async function showLedgerPage() {
+      const walletId = entriesWallet.value;
+      if (!walletId) {
+        return;
+      }
+      const path = API + '/wallets/' + walletId + '/entries?page=' + ledgerPage + '&size=' + LEDGER_PAGE_SIZE;
+      const result = await sendAndLog('GET', path, null, null);
+      if (result.status === 200) {
+        renderLedgerTable(result.bodyText);
+      }
+    }
+
+    async function showPreviousLedgerPage() {
+      if (ledgerPage > 0) {
+        ledgerPage -= 1;
+      }
+      await showLedgerPage();
+    }
+
+    async function showNextLedgerPage() {
+      ledgerPage += 1;
+      await showLedgerPage();
+    }
+
+    function refreshKeyAfterSuccess(result, keyInput, keepKeyCheckbox) {
+      // A fresh key after a successful send makes the next request a new
+      // intent. With "keep key", the same request can be replayed unchanged,
+      // or the amount changed to see IDEMPOTENCY_KEY_REUSED.
+      if (result.status === 201 && !keepKeyCheckbox.checked) {
+        keyInput.value = crypto.randomUUID();
+      }
+    }
+
+    function renderLedgerTable(bodyText) {
+      ledgerRows.replaceChildren(...textOfEachEntryIn(bodyText).map(ledgerRow));
+    }
+
+    function ledgerRow(entryText) {
+      const row = document.createElement('tr');
+      for (const field of ['seq', 'operationId', 'type', 'amountSigned', 'balanceAfter', 'createdAt']) {
+        const cell = document.createElement('td');
+        cell.textContent = displayedValue(fieldValueInText(entryText, field));
+        row.append(cell);
+      }
+      return row;
+    }
+
+    // Every entry is a flat object, so its text runs from an opening brace to
+    // the next closing brace; nothing inside an entry contains a brace.
+    function textOfEachEntryIn(bodyText) {
+      const arrayStartsAt = bodyText.indexOf('"entries":[');
+      if (arrayStartsAt === -1) {
+        return [];
+      }
+      const arrayText = bodyText.substring(arrayStartsAt + '"entries":['.length);
+
+      const entryTexts = [];
+      let cursor = 0;
+      while (true) {
+        const opensAt = arrayText.indexOf('{', cursor);
+        if (opensAt === -1) {
+          break;
+        }
+        const closesAt = arrayText.indexOf('}', opensAt);
+        entryTexts.push(arrayText.substring(opensAt, closesAt + 1));
+        cursor = closesAt;
+      }
+      return entryTexts;
+    }
+
+    // ---------- Starting the console ----------
+
+    function startConsole() {
+      createWalletButton.addEventListener('click', () => createWalletFor(createUserId.value.trim()));
+      adoptWalletButton.addEventListener('click', () => adoptWalletById(adoptWalletIdInput.value.trim()));
+      depositButton.addEventListener('click', () => depositInto());
+      withdrawalButton.addEventListener('click', () => withdrawFrom());
+      transferButton.addEventListener('click', () => transferBetween());
+      balanceButton.addEventListener('click', () => showCurrentBalance());
+      balanceAtButton.addEventListener('click', () => showBalanceAt());
+      entriesButton.addEventListener('click', () => {
+        ledgerPage = 0;
+        showLedgerPage();
+      });
+      entriesPrevious.addEventListener('click', () => showPreviousLedgerPage());
+      entriesNext.addEventListener('click', () => showNextLedgerPage());
+      // A different wallet's ledger starts at its first page.
+      entriesWallet.addEventListener('change', () => {
+        ledgerPage = 0;
+      });
+
+      depositKey.value = crypto.randomUUID();
+      withdrawalKey.value = crypto.randomUUID();
+      transferKey.value = crypto.randomUUID();
+
+      knownWallets = loadKnownWallets();
+      renderKnownWallets();
+      refillWalletChoices();
+    }
+
+    startConsole();
+  </script>
+</body>
+</html>
