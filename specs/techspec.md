@@ -1,6 +1,6 @@
 # Tech Spec — Wallet Service (RecargaPay Challenge)
 
-Source: `specs/Wallet_Service_Assignment.pdf`
+Source: `specs/Wallet_Service_Assignment.pdf` (not included in the public repository)
 
 ## 1. Executive Summary
 
@@ -487,7 +487,7 @@ Not applicable. The project has no `.claude/skills` directory.
 
 ### Relevant and Dependent Files
 
-- `specs/Wallet_Service_Assignment.pdf` — the requirements
+- `specs/Wallet_Service_Assignment.pdf` (not included in the public repository) — the requirements
 - `specs/templates/techspec-template.md` — the template this document covers
 - `specs/prd.md` — the product requirements
 - `specs/tasks.md` and `specs/task-*.md` — the implementation tasks

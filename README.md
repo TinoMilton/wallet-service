@@ -1,6 +1,6 @@
 # Wallet Service
 
-A wallet microservice for the RecargaPay take-home assessment. It creates a wallet for a user and moves money in it: deposit, withdraw, and transfer to another wallet. Every operation appends to an immutable, per-wallet ledger, so any balance, current or at any past instant, can be explained from the record that produced it. Commands are synchronous: the caller knows immediately whether money moved.
+A wallet microservice for the RecargaPay take-home assessment. It creates a wallet for a user and moves money in it: deposit, withdraw, and transfer to another wallet. Every operation appends to an immutable, per-wallet ledger, so any balance, current or at any past instant, can be explained from the record that produced it. Commands are synchronous: the caller knows immediately whether money moved. The assignment statement itself is not included in this public repository; sections 1 and 4 summarise its requirements.
 
 ## 1. What it is
 
@@ -36,9 +36,24 @@ Host ports and database credentials come from environment variables with default
 | `POSTGRES_USER` | `wallet` | database user |
 | `POSTGRES_PASSWORD` | `wallet` | database password |
 
-For example, when 8080 is taken: `WALLET_APP_PORT=9090 docker compose up --build`.
+For example, when 8080 is taken: `WALLET_APP_PORT=8081 docker compose up --build`.
 
 The database service also stands on its own for local development: `docker compose up -d postgres` starts just PostgreSQL, and the application's own defaults already point at `localhost:5432`.
+
+### Run the tests
+
+Run the tests (needs Docker; they use a real PostgreSQL through Testcontainers):
+
+```bash
+./mvnw verify
+```
+
+This runs the whole suite and fails the build below 90% line or 85% branch coverage. Where things are:
+
+- Coverage report: `target/site/jacoco/index.html` after `./mvnw verify`.
+- API documentation: interactive at `http://localhost:8080/swagger-ui/index.html`, raw OpenAPI at `http://localhost:8080/v3/api-docs`.
+- Operation metrics: `http://localhost:8080/actuator/prometheus` (Prometheus format).
+- Logs: one JSON line per event, carrying `requestId`, `walletId` and `operationId` (`docker compose logs app`).
 
 ### Manual test console
 
@@ -74,28 +89,13 @@ The signals that matter most:
 
 The two integrity queries scan whole tables, so they are fine for this small stack but would run against a replica in production, never against the primary.
 
-The dashboards open on the last 15 minutes, so the request and operation panels show flat lines unless traffic is running; the load command below fills them.
-
-The dashboards are flat without traffic, so a small load generator ships under the `load` compose profile (it never starts with `docker compose up` or `--profile monitoring` alone). With the stack up, run it on demand; it prints its summary and exits:
+The dashboards open on the last 15 minutes, so the request and operation panels show flat lines unless traffic is running; the load command below fills them. A small load generator ships under the `load` compose profile (it never starts with `docker compose up` or `--profile monitoring` alone). With the stack up, run it on demand; it prints its summary and exits:
 
 ```bash
 docker compose run --rm k6
 ```
 
 It waits for readiness, creates and funds 30 wallets, then sends about 20 requests per second for 3 minutes: deposits, withdrawals, transfers and balance reads, plus a small share of idempotent replays, reused idempotency keys, withdrawals beyond the balance and requests for an unknown wallet. Length, pace and wallet count come from `WALLET_LOAD_DURATION` (default `3m`), `WALLET_LOAD_RATE` (default `20`) and `WALLET_LOAD_WALLETS` (default `30`).
-
-Run the tests (needs Docker; they use a real PostgreSQL through Testcontainers):
-
-```bash
-./mvnw verify
-```
-
-This runs the whole suite and fails the build below 90% line or 85% branch coverage. Where things are:
-
-- Coverage report: `target/site/jacoco/index.html` after `./mvnw verify`.
-- API documentation: interactive at `http://localhost:8080/swagger-ui/index.html`, raw OpenAPI at `http://localhost:8080/v3/api-docs`.
-- Operation metrics: `http://localhost:8080/actuator/prometheus` (Prometheus format).
-- Logs: one JSON line per event, carrying `requestId`, `walletId` and `operationId` (`docker compose logs app`).
 
 ## 3. API
 
@@ -347,24 +347,27 @@ Unit tests cover the money value object and the request fingerprint (`MoneyTest`
 
 **The concurrency tests** (`ConcurrencyTest`, covering BR-24 to BR-26 and BR-29) run 100 simultaneous callers, each on its own virtual thread, released at the same instant by a latch (`support/ConcurrentCallers.runConcurrently`). The application under test runs with virtual threads enabled, the same as production. The pool holds 10 connections, so the callers really do queue on connections and on the wallet row lock. Each test asserts the full set of responses and the final state, and ends by checking the audit invariant (BR-19) on every wallet involved.
 
-**Measured totals from the final run** (after the last code change): 127 tests, all passing; 96.39% line and 87.50% branch coverage, above the 90% / 85% build gate; `ConcurrencyTest` passed 5 consecutive runs.
+**Measured totals from the final run** (after the last code change): 135 tests, all passing; 96.45% line and 87.50% branch coverage, above the 90% / 85% build gate; `ConcurrencyTest` passed 5 consecutive runs.
 
 ## 9. Time spent
 
-The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-3) to the last at 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes, measured with `git log` on the main branch. Design and specification time, before the first commit, is reported separately by the author.
+The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-3) to the last at 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes, measured with `git log` on the main branch. The later additions, measured the same way, are the manual test console on 2026-10-12, from 12:28 to 12:41 (UTC-3), an elapsed 13 minutes, and the monitoring stack with its dashboards and load generator, from 2026-10-13 23:55 to 2026-10-14 09:01 (UTC-3), an elapsed 9 hours 6 minutes. Design and specification time, before the first commit, is reported separately by the author.
 
 ## 10. Repository layout
 
 ```
+├── AGENTS.md                   instructions for the coding agents used on this repository
+├── CLAUDE.md                   the same instructions, imported for Claude Code
 ├── Dockerfile                  multi-stage build: JDK 25 build, JDK 25 JRE runtime, non-root
 ├── docker-compose.yml          the application and PostgreSQL, with health checks; monitoring and load profiles
+├── docs/orchestration.md       how the coding agents were coordinated
 ├── monitoring/                 Prometheus config, Grafana provisioning and dashboards, the k6 load script
 ├── pom.xml                     Spring Boot 4.1.1, JaCoCo gate, Spotless
 ├── src/main/java/com/recargapay/wallet/
 │   ├── api/                    controllers, DTOs, GlobalExceptionHandler
 │   ├── config/                 clock, Jackson, OpenAPI, scheduling
 │   ├── domain/                 entities, Money, WalletId, IdempotencyKey, RequestFingerprint, exceptions
-│   ├── observability/          operation metrics and outcome levels, request id filter
+│   ├── observability/          operation metrics and outcome levels, problem and replay counters, request id filter
 │   ├── outbox/                 publisher, relay, event payloads, gauges
 │   ├── repository/             Spring Data JPA repositories
 │   └── service/                WalletService, LedgerService, IdempotentCommandExecutor, RequestFingerprints

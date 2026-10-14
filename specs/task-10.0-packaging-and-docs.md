@@ -40,7 +40,7 @@ None. The project has no `.claude/skills` directory.
 
 ## Implementation Details
 
-- Deliverables: `Wallet_Service_Assignment.pdf`, "Deliverables".
+- Deliverables: `Wallet_Service_Assignment.pdf` (not included in the public repository), "Deliverables".
 - Design choices and rejected alternatives: `techspec.md` sections 1 and 2.
 - Assumptions: section 10.
 - Trade-offs: section 11.

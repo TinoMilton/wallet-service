@@ -1,6 +1,6 @@
 # Product Requirements Document — Wallet Service
 
-Source: `specs/Wallet_Service_Assignment.pdf`
+Source: `specs/Wallet_Service_Assignment.pdf` (not included in the public repository)
 
 ## Overview
 
