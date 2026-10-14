@@ -15,6 +15,15 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 - [x] 9.0 Observability and operational readiness — [task-9.0-observability.md](task-9.0-observability.md)
 - [x] 10.0 Packaging and documentation — [task-10.0-packaging-and-docs.md](task-10.0-packaging-and-docs.md)
 
+Added after the original plan, at the author's request:
+
+- [x] 11.0 Manual test console — no task file; see "Current State"
+- [ ] 12.0 Application metrics for monitoring — [task-12.0-application-metrics.md](task-12.0-application-metrics.md)
+- [ ] 13.0 Monitoring stack and dashboards — [task-13.0-monitoring-stack.md](task-13.0-monitoring-stack.md)
+- [ ] 14.0 Load generator, monitoring documentation and end-to-end check — [task-14.0-load-and-monitoring-docs.md](task-14.0-load-and-monitoring-docs.md)
+
+Tasks 12.0 and 13.0 run in parallel, each in its own worktree: 12.0 owns `src/` and `specs/techspec.md`, 13.0 owns `docker-compose.yml`, `.dockerignore` and `monitoring/`. Task 14.0 runs alone after both are merged. Implementer Droid `glm-5.3` `-r high`, review by headless Codex.
+
 ## Execution Plan for Agent Orchestration
 
 Tasks run in eight stages. Tasks in the same stage run in parallel, each with its own agent. A stage starts only when every task of the previous stage is merged and the full build passes on the main branch.
