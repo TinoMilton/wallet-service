@@ -296,7 +296,7 @@ Documented, not built:
   - `wallet_outbox_unpublished` (gauge) and `wallet_outbox_lag_seconds`
   - Standard HTTP, JVM and HikariCP metrics
 - **Logs:** JSON, one line per event, with `requestId`, `walletId` and `operationId`. Business rejections log at INFO, lock timeouts at WARN, unexpected failures at ERROR.
-- **Dashboards:** none are shipped. The metrics are named so a Grafana dashboard can be built on them.
+- **Dashboards:** three Grafana dashboards are shipped in `monitoring/grafana/dashboards`, provisioned by the compose monitoring profile with Prometheus and a read-only PostgreSQL role: "Wallet — Service" (the API a caller experiences), "Wallet — Runtime and Database" (JVM, connection pool and PostgreSQL) and "Wallet — Business" (money and the two ledger integrity checks, queried straight from the database).
 
 ### Integration Points
 
@@ -478,6 +478,7 @@ JaCoCo measures how much of the whole application the test suite executes. It co
 | Outbox delivery is at-least-once, relayed to a log. | Consumers may see duplicates, and no broker is exercised. | Events carry the operation id; the relay target is one class to replace. |
 | Single-entry ledger. | Money entering and leaving the system has no counterparty account. | Evolve to double-entry with system accounts. |
 | Idempotency keys are kept indefinitely. | The `operation` table grows with every operation. | It is also the operation record, so it is retained on purpose; partition by time at scale. |
+| Grafana reads the wallet database directly for the business and integrity panels. | Those queries add load to the database, and the integrity checks scan whole tables. | The role is read-only and SELECT-only; in production the queries would run against a replica, never the primary. |
 | The lock-timeout mechanism under JPA was unverified at design time. | A wrong mechanism could mean unbounded lock waits. | Verified in task 4.0: the JPA hint is ignored for positive values on PostgreSQL, and `SET LOCAL lock_timeout = '2s'` is used instead. |
 
 ### Standard Skills Compliance

@@ -44,6 +44,44 @@ The database service also stands on its own for local development: `docker compo
 
 With the stack up, the application serves a manual test console at `http://localhost:8080/` (the `WALLET_APP_PORT` host port when it is set). It is a test tool, not part of the product API. From it you can create wallets, deposit, withdraw and transfer, read the current and a past balance, and page through a wallet's ledger, with every request logged together with its status, problem code and request id. Each money-moving form carries an `Idempotency-Key` and a "keep key" checkbox: with the key kept, sending the same deposit twice shows the replay return the original result, and changing the amount with the same key shows the `IDEMPOTENCY_KEY_REUSED` rejection. Choosing the same wallet as both ends of a transfer shows the `SAME_WALLET_TRANSFER` rejection.
 
+### Monitoring
+
+`docker compose --profile monitoring up -d` adds Prometheus and Grafana to the running stack. Prometheus scrapes the application and the PostgreSQL exporter every 5 seconds; Grafana is anonymous and read-only, with its home dashboard set to "Wallet — Business". The extra host ports come from the same environment variables as the rest of the stack: `WALLET_PROMETHEUS_PORT` (default 9090) and `WALLET_GRAFANA_PORT` (default 3000).
+
+| URL | What |
+|---|---|
+| `http://localhost:3000/d/wallet-business` | Grafana: Wallet — Business (the home dashboard) |
+| `http://localhost:3000/d/wallet-service` | Grafana: Wallet — Service |
+| `http://localhost:3000/d/wallet-runtime-database` | Grafana: Wallet — Runtime and Database |
+| `http://localhost:9090` | Prometheus: graph, targets and status |
+
+**Wallet — Service** shows the API as a caller experiences it: request rate by endpoint, response time average, p50, p95 and p99, the share of 4xx and 5xx answers, money operations per second by type and outcome, operation duration percentiles, the `WALLET_BUSY` rate, problem answers by code, idempotent replays by type, and the outbox backlog and lag.
+
+**Wallet — Runtime and Database** shows the machinery underneath: CPU and load, JVM heap and non-heap memory, garbage collection, live threads, the HikariCP connection pool, and PostgreSQL connections, commits, rollbacks, deadlocks, locks and database size.
+
+**Wallet — Business** shows the money itself, straight from the database through the read-only `grafana_reader` role: the two ledger integrity checks, total money held, wallet counts and creation rate, volume moved and net flow over time, the average ticket per operation type, and the busiest wallets.
+
+The signals that matter most:
+
+| Signal | Dashboard | What a bad value means |
+|---|---|---|
+| p99 response time | Wallet — Service | The slowest 1% of requests is growing: wallets are queueing on their row lock, or the database is under pressure. |
+| 5xx share | Wallet — Service | 500s are service failures; a rising share of 503 `WALLET_BUSY` means lock contention past the 2-second timeout. |
+| BUSY rate | Wallet — Service | Requests waited too long for a wallet lock. Retrying with the same key is safe, but a sustained rate means one wallet is too hot. |
+| Pool pending | Wallet — Runtime and Database | Requests are queueing for a database connection: the pool is saturated or the database has slowed down. |
+| Outbox age | Wallet — Service | The oldest unpublished event is aging: event delivery is falling behind the operations. |
+| Ledger integrity, transfer conservation | Wallet — Business | Above zero, a balance no longer matches its ledger entries or a transfer no longer conserves money. This is the audit invariant; investigate immediately. |
+
+The two integrity queries scan whole tables, so they are fine for this small stack but would run against a replica in production, never against the primary.
+
+The dashboards are flat without traffic, so a small load generator ships under the `load` compose profile (it never starts with `docker compose up` or `--profile monitoring` alone). With the stack up, run it on demand; it prints its summary and exits:
+
+```bash
+docker compose run --rm k6
+```
+
+It waits for readiness, creates and funds 30 wallets, then sends about 20 requests per second for 3 minutes: deposits, withdrawals, transfers and balance reads, plus a small share of idempotent replays, reused idempotency keys, withdrawals beyond the balance and requests for an unknown wallet. Length, pace and wallet count come from `WALLET_LOAD_DURATION` (default `3m`), `WALLET_LOAD_RATE` (default `20`) and `WALLET_LOAD_WALLETS` (default `30`).
+
 Run the tests (needs Docker; they use a real PostgreSQL through Testcontainers):
 
 ```bash
@@ -317,7 +355,8 @@ The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-
 
 ```
 ├── Dockerfile                  multi-stage build: JDK 25 build, JDK 25 JRE runtime, non-root
-├── docker-compose.yml          the application and PostgreSQL, with health checks
+├── docker-compose.yml          the application and PostgreSQL, with health checks; monitoring and load profiles
+├── monitoring/                 Prometheus config, Grafana provisioning and dashboards, the k6 load script
 ├── pom.xml                     Spring Boot 4.1.1, JaCoCo gate, Spotless
 ├── src/main/java/com/recargapay/wallet/
 │   ├── api/                    controllers, DTOs, GlobalExceptionHandler

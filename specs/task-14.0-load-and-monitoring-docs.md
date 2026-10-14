@@ -27,9 +27,9 @@ Run the full stack with the load generator and fix whatever does not work in the
 
 ## Subtasks
 
-- [ ] 14.1 Load script and `k6` service
-- [ ] 14.2 End-to-end run and dashboard fixes
-- [ ] 14.3 README and tech spec
+- [x] 14.1 Load script and `k6` service
+- [x] 14.2 End-to-end run and dashboard fixes
+- [x] 14.3 README and tech spec
 
 ## Files
 
