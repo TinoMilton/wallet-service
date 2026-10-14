@@ -351,7 +351,7 @@ Unit tests cover the money value object and the request fingerprint (`MoneyTest`
 
 ## 9. Time spent
 
-The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-3) to the last at 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes, measured with `git log` on the main branch. The later additions, measured the same way, are the manual test console on 2026-10-12, from 12:28 to 12:41 (UTC-3), an elapsed 13 minutes, and the monitoring stack with its dashboards and load generator, from 2026-10-13 23:55 to 2026-10-14 09:01 (UTC-3), an elapsed 9 hours 6 minutes. Design and specification time, before the first commit, is reported separately by the author.
+The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-3) to the last at 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes, measured with `git log` on the main branch. The later additions, measured the same way, are the manual test console on 2026-10-12, from 12:28 to 12:41 (UTC-3), an elapsed 13 minutes, and the monitoring stack with its dashboards and load generator, from 2026-10-13 23:55 to 2026-10-14 09:01 (UTC-3); that span includes an overnight pause, so it is not a measure of effort. Design and specification time, before the first commit, is reported separately by the author.
 
 ## 10. Repository layout
 
