@@ -10,6 +10,13 @@
 # seconds, and Grafana with its datasources and dashboards provisioned from
 # monitoring/. Plain `docker compose up` still starts only app and PostgreSQL.
 #
+# The load generator is a k6 service under the separate profile `load`, so it
+# never starts with plain `docker compose up` nor with `--profile monitoring`
+# alone. It is run on demand, once, against the running stack:
+#   docker compose run --rm k6
+# It creates and funds its own wallets first, and its pace and length come from
+# the WALLET_LOAD_* variables below.
+#
 # Every value a reviewer might need to change is an environment variable with a
 # default, so no file needs editing when a port or credential is taken:
 #   WALLET_APP_PORT            (default 8080)  host port for the application
@@ -18,6 +25,9 @@
 #   WALLET_GRAFANA_PORT        (default 3000)  host port for Grafana
 #   WALLET_GRAFANA_DB_PASSWORD (default grafana_reader)  password of the
 #                               read-only role Grafana uses to query the wallet database
+#   WALLET_LOAD_DURATION       (default 3m)   how long the load generator sends traffic
+#   WALLET_LOAD_RATE           (default 20)   its requests per second
+#   WALLET_LOAD_WALLETS        (default 30)   wallets it creates and trades with
 #   POSTGRES_DB        (default wallet)
 #   POSTGRES_USER      (default wallet)
 #   POSTGRES_PASSWORD  (default wallet)
@@ -115,3 +125,23 @@ services:
         condition: service_healthy
       grafana-db-reader:
         condition: service_completed_successfully
+
+  k6:
+    # The load generator for the dashboards. On demand only: the `load` profile
+    # keeps it out of `docker compose up` and `--profile monitoring`, and
+    # `docker compose run --rm k6` runs it once, attached, with its summary.
+    # The script waits for the application's readiness itself, so a plain
+    # service_started dependency is enough here.
+    image: grafana/k6:2.3.0
+    container_name: wallet-k6
+    profiles: ["load"]
+    environment:
+      BASE_URL: http://app:8080
+      LOAD_DURATION: ${WALLET_LOAD_DURATION:-3m}
+      LOAD_RATE: ${WALLET_LOAD_RATE:-20}
+      WALLETS: ${WALLET_LOAD_WALLETS:-30}
+    volumes:
+      - ./monitoring/load/wallet-traffic.js:/wallet-traffic.js:ro
+    command: run /wallet-traffic.js
+    depends_on:
+      - app
