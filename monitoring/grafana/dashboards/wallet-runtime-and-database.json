@@ -60,7 +60,13 @@
       "title": "JVM heap memory: used against max",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "axisMin": 0 }
+        },
+        "overrides": []
+      },
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "single", "sort": "none" }
@@ -68,15 +74,21 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "jvm_memory_used_bytes{area=\"heap\"}",
-          "legendFormat": "{{id}} used",
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
+          "legendFormat": "used",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "jvm_memory_max_bytes{area=\"heap\"}",
-          "legendFormat": "{{id}} max",
+          "expr": "sum(jvm_memory_committed_bytes{area=\"heap\"})",
+          "legendFormat": "committed",
           "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(jvm_memory_max_bytes{area=\"heap\"} > 0)",
+          "legendFormat": "max",
+          "refId": "C"
         }
       ]
     },
@@ -86,7 +98,13 @@
       "title": "JVM non-heap memory: used against max",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "axisMin": 0 }
+        },
+        "overrides": []
+      },
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "single", "sort": "none" }
@@ -94,15 +112,21 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "jvm_memory_used_bytes{area=\"nonheap\"}",
-          "legendFormat": "{{id}} used",
+          "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\"})",
+          "legendFormat": "used",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "jvm_memory_max_bytes{area=\"nonheap\"} > 0",
-          "legendFormat": "{{id}} max",
+          "expr": "sum(jvm_memory_committed_bytes{area=\"nonheap\"})",
+          "legendFormat": "committed",
           "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(jvm_memory_max_bytes{area=\"nonheap\"} > 0)",
+          "legendFormat": "max",
+          "refId": "C"
         }
       ]
     },

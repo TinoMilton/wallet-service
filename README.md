@@ -74,6 +74,8 @@ The signals that matter most:
 
 The two integrity queries scan whole tables, so they are fine for this small stack but would run against a replica in production, never against the primary.
 
+The dashboards open on the last 15 minutes, so the request and operation panels show flat lines unless traffic is running; the load command below fills them.
+
 The dashboards are flat without traffic, so a small load generator ships under the `load` compose profile (it never starts with `docker compose up` or `--profile monitoring` alone). With the stack up, run it on demand; it prints its summary and exits:
 
 ```bash
