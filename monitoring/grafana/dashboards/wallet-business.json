@@ -94,7 +94,7 @@
       "datasource": { "type": "postgres", "uid": "postgres" },
       "fieldConfig": { "defaults": { "unit": "none", "decimals": 2 }, "overrides": [] },
       "options": {
-        "colorMode": "value",
+        "colorMode": "none",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -247,7 +247,7 @@
       "id": 10,
       "type": "table",
       "title": "Busiest wallets by number of entries, top 10",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "gridPos": { "h": 14, "w": 12, "x": 12, "y": 28 },
       "datasource": { "type": "postgres", "uid": "postgres" },
       "fieldConfig": {
         "defaults": {},
