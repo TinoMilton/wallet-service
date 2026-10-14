@@ -106,7 +106,7 @@
         {
           "datasource": { "type": "postgres", "uid": "postgres" },
           "format": "table",
-          "rawSql": "SELECT SUM(balance) AS total_money_held FROM wallet;",
+          "rawSql": "SELECT COALESCE(SUM(balance), 0) AS total_money_held FROM wallet;",
           "refId": "A"
         }
       ]
@@ -226,10 +226,10 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Operations over time by type",
+      "title": "Operations over time by type (per 1-minute bucket)",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
       "datasource": { "type": "postgres", "uid": "postgres" },
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
         "tooltip": { "mode": "single", "sort": "none" }
@@ -249,7 +249,17 @@
       "title": "Busiest wallets by number of entries, top 10",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
       "datasource": { "type": "postgres", "uid": "postgres" },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "entries" },
+            "properties": [
+              { "id": "unit", "value": "short" }
+            ]
+          }
+        ]
+      },
       "options": {
         "cellHeight": "sm",
         "showHeader": true

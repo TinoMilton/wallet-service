@@ -218,7 +218,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(hikaricp_connections_acquire_seconds_sum[$__rate_interval]) / rate(hikaricp_connections_acquire_seconds_count[$__rate_interval])",
+          "expr": "rate(hikaricp_connections_acquire_seconds_sum[$__rate_interval]) / clamp_min(rate(hikaricp_connections_acquire_seconds_count[$__rate_interval]), 1e-9)",
           "legendFormat": "average time to obtain a connection",
           "refId": "A"
         }
