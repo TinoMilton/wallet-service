@@ -1,0 +1,267 @@
+{
+  "uid": "wallet-business",
+  "title": "Wallet — Business",
+  "tags": ["wallet"],
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-15m", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Ledger integrity: wallets whose balance differs from their entries",
+      "description": "Compares each wallet's cached balance with the sum of its ledger entries; a wallet with no entries has balance 0 and is consistent. Green at 0, red above.",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT count(*) AS wallets_out_of_balance\nFROM wallet w\nWHERE w.balance <> COALESCE((\n    SELECT SUM(amount_signed) FROM ledger_entry e WHERE e.wallet_id = w.id\n), 0);",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Transfer conservation: transfers whose entries do not sum to zero",
+      "description": "Each transfer writes one negative entry for the sender and one positive for the receiver; their sum must be zero. Green at 0, red above.",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT count(*) AS transfers_not_summing_to_zero\nFROM operation o\nJOIN (\n    SELECT operation_id, SUM(amount_signed) AS total\n    FROM ledger_entry\n    GROUP BY operation_id\n) e ON e.operation_id = o.id\nWHERE o.type = 'TRANSFER' AND e.total <> 0;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total money held by all wallets",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT SUM(balance) AS total_money_held FROM wallet;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Wallets in total",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT count(*) AS wallets FROM wallet;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "New wallets over time",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(created_at, '1m'),\n       count(*) AS new_wallets\nFROM wallet\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Volume moved over time by operation type",
+      "description": "Each operation counts once, at its own amount; a transfer is not double-counted for its two entries.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(o.created_at, '1m'),\n       o.type AS metric,\n       SUM(e.amount_moved) AS volume\nFROM operation o\nJOIN (\n    -- One row per operation, its amount: transfers write two entries of the same magnitude.\n    SELECT operation_id, MAX(ABS(amount_signed)) AS amount_moved\n    FROM ledger_entry\n    GROUP BY operation_id\n) e ON e.operation_id = o.id\nWHERE $__timeFilter(o.created_at)\nGROUP BY 1, o.type\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Net flow over time: deposits minus withdrawals",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(o.created_at, '1m'),\n       SUM(CASE o.type WHEN 'DEPOSIT' THEN e.amount_moved\n                       WHEN 'WITHDRAWAL' THEN -e.amount_moved\n                       ELSE 0 END) AS net_flow\nFROM operation o\nJOIN (\n    SELECT operation_id, MAX(ABS(amount_signed)) AS amount_moved\n    FROM ledger_entry\n    GROUP BY operation_id\n) e ON e.operation_id = o.id\nWHERE $__timeFilter(o.created_at)\nGROUP BY 1\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Average ticket by operation type",
+      "description": "Average amount of each operation in the selected time range.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 2 }, "overrides": [] },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT o.type AS metric,\n       AVG(e.amount_moved) AS average_ticket\nFROM operation o\nJOIN (\n    SELECT operation_id, MAX(ABS(amount_signed)) AS amount_moved\n    FROM ledger_entry\n    GROUP BY operation_id\n) e ON e.operation_id = o.id\nWHERE $__timeFilter(o.created_at)\nGROUP BY o.type;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Operations over time by type",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(created_at, '1m'),\n       type AS metric,\n       count(*) AS operations\nFROM operation\nWHERE $__timeFilter(created_at)\nGROUP BY 1, type\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Busiest wallets by number of entries, top 10",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "postgres", "uid": "postgres" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "format": "table",
+          "rawSql": "SELECT w.user_id,\n       count(*) AS entries\nFROM ledger_entry e\nJOIN wallet w ON w.id = e.wallet_id\nWHERE $__timeFilter(e.created_at)\nGROUP BY w.user_id\nORDER BY entries DESC\nLIMIT 10;",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

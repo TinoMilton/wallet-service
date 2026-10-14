@@ -1,0 +1,13 @@
+# The three dashboards load from the mounted folder, in one Grafana folder.
+# The UI cannot change or delete them: they are provisioned files.
+apiVersion: 1
+
+providers:
+  - name: wallet
+    folder: Wallet
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

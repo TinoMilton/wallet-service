@@ -1,0 +1,28 @@
+# Grafana expands $VARIABLES from its own environment; the compose file fills
+# those with the same defaults the rest of the stack uses. The uid is fixed so
+# the dashboards reference the datasources by name, never by database id.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: PostgreSQL
+    uid: postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: $POSTGRES_DB
+    user: grafana_reader
+    secureJsonData:
+      password: $WALLET_GRAFANA_DB_PASSWORD
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1800
+      timescaledb: false
+    editable: false

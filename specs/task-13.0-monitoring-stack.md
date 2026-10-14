@@ -66,12 +66,12 @@ Task 12.0 runs in parallel and adds: histogram buckets for the two timers, the c
 
 ## Subtasks
 
-- [ ] 13.1 Compose services under the `monitoring` profile
-- [ ] 13.2 Prometheus configuration
-- [ ] 13.3 Read-only role script and one-shot service
-- [ ] 13.4 Grafana provisioning (datasources, dashboard provider)
-- [ ] 13.5 The three dashboards
-- [ ] 13.6 Verification run
+- [x] 13.1 Compose services under the `monitoring` profile
+- [x] 13.2 Prometheus configuration
+- [x] 13.3 Read-only role script and one-shot service
+- [x] 13.4 Grafana provisioning (datasources, dashboard provider)
+- [x] 13.5 The three dashboards
+- [x] 13.6 Verification run
 
 ## Files
 

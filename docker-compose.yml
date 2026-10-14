@@ -5,10 +5,19 @@
 # `docker compose up -d postgres` starts just PostgreSQL, and the application's
 # own defaults in application.yml already point at localhost:5432.
 #
+# `docker compose --profile monitoring up` adds the observability stack:
+# Prometheus scraping the application and the PostgreSQL exporter every 5
+# seconds, and Grafana with its datasources and dashboards provisioned from
+# monitoring/. Plain `docker compose up` still starts only app and PostgreSQL.
+#
 # Every value a reviewer might need to change is an environment variable with a
 # default, so no file needs editing when a port or credential is taken:
-#   WALLET_APP_PORT    (default 8080)  host port for the application
-#   WALLET_DB_PORT     (default 5432)  host port for PostgreSQL
+#   WALLET_APP_PORT            (default 8080)  host port for the application
+#   WALLET_DB_PORT             (default 5432)  host port for PostgreSQL
+#   WALLET_PROMETHEUS_PORT     (default 9090)  host port for Prometheus
+#   WALLET_GRAFANA_PORT        (default 3000)  host port for Grafana
+#   WALLET_GRAFANA_DB_PASSWORD (default grafana_reader)  password of the
+#                               read-only role Grafana uses to query the wallet database
 #   POSTGRES_DB        (default wallet)
 #   POSTGRES_USER      (default wallet)
 #   POSTGRES_PASSWORD  (default wallet)
@@ -40,3 +49,69 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: wallet-prometheus
+    profiles: ["monitoring"]
+    ports:
+      - "${WALLET_PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - app
+
+  postgres-exporter:
+    # Server-side PostgreSQL metrics; no host port, it is scraped through the
+    # compose network. Version 0.20.x supports PostgreSQL 18.
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: wallet-postgres-exporter
+    profiles: ["monitoring"]
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-wallet}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-wallet}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:-wallet}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  grafana-db-reader:
+    # One-shot: creates the login role Grafana uses to read the wallet tables.
+    # It lives here and not in a Flyway migration, so monitoring never leaks
+    # into the application schema.
+    image: postgres:18-alpine
+    container_name: wallet-grafana-db-reader
+    profiles: ["monitoring"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-wallet}
+      WALLET_GRAFANA_DB_PASSWORD: ${WALLET_GRAFANA_DB_PASSWORD:-grafana_reader}
+    volumes:
+      - ./monitoring/postgres/create-grafana-reader.sql:/create-grafana-reader.sql:ro
+    entrypoint: ["psql", "-v", "ON_ERROR_STOP=1", "-h", "postgres", "-U", "${POSTGRES_USER:-wallet}", "-d", "${POSTGRES_DB:-wallet}", "-f", "/create-grafana-reader.sql"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  grafana:
+    # Anonymous read-only Grafana: anyone who can reach this machine can view
+    # the dashboards. That is acceptable for a local development stack only,
+    # never for a deployment reachable by others.
+    image: grafana/grafana:13.2.4
+    container_name: wallet-grafana
+    profiles: ["monitoring"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/wallet-business.json
+      POSTGRES_DB: ${POSTGRES_DB:-wallet}
+      WALLET_GRAFANA_DB_PASSWORD: ${WALLET_GRAFANA_DB_PASSWORD:-grafana_reader}
+    ports:
+      - "${WALLET_GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      grafana-db-reader:
+        condition: service_completed_successfully
