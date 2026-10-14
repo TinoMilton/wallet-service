@@ -18,8 +18,8 @@ Read `prd.md` and `techspec.md` in this folder before starting any task.
 Added after the original plan, at the author's request:
 
 - [x] 11.0 Manual test console — no task file; see "Current State"
-- [ ] 12.0 Application metrics for monitoring — [task-12.0-application-metrics.md](task-12.0-application-metrics.md)
-- [ ] 13.0 Monitoring stack and dashboards — [task-13.0-monitoring-stack.md](task-13.0-monitoring-stack.md)
+- [x] 12.0 Application metrics for monitoring — [task-12.0-application-metrics.md](task-12.0-application-metrics.md)
+- [x] 13.0 Monitoring stack and dashboards — [task-13.0-monitoring-stack.md](task-13.0-monitoring-stack.md)
 - [ ] 14.0 Load generator, monitoring documentation and end-to-end check — [task-14.0-load-and-monitoring-docs.md](task-14.0-load-and-monitoring-docs.md)
 
 Tasks 12.0 and 13.0 run in parallel, each in its own worktree: 12.0 owns `src/` and `specs/techspec.md`, 13.0 owns `docker-compose.yml`, `.dockerignore` and `monitoring/`. Task 14.0 runs alone after both are merged. Implementer Droid `glm-5.3` `-r high`, review by headless Codex.
@@ -164,6 +164,8 @@ The coordinator records one line per accepted delivery here: task, agent and mod
 - All ten tasks accepted. Final independent gate passed (Droid `glm-5.3-flash`, on `aead714`): `./mvnw verify` BUILD SUCCESS, 127 tests, 0 failures, 0 skipped; 96.39% line / 87.50% branch recomputed from `jacoco.csv`; every rule BR-01 to BR-29 has at least one test; no sleeps, disabled tests or mocks in `src/test`; `docker compose config` valid.
 
 - Task 11.0 (added after the plan, at the author's request): manual test console, one static page at `/` (`static/index.html`), no dependency or Java change. Droid `glm-5.3`, reviewed by Codex. The first delivery was verified only with curl and did not work in a browser (undeclared element references, wallet ids stored with quotes); fixed in the same session and accepted on `dcb5b03` after a headless-Chrome run of the served page passed 15/15 steps with no page or console error. `./mvnw verify` BUILD SUCCESS, 128 tests, 96.39% line / 87.50% branch.
+- 12.0 accepted and merged to main (fast-forward) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (no blockers; aspect order made explicit, one test made to match its name); `./mvnw verify` BUILD SUCCESS on the branch, 135 tests, 96.48% line / 87.50% branch. Histogram buckets for both timers, common tag `application`, `wallet_api_problems_total{code}`, `wallet_idempotent_replays_total{type}`. One existing assertion gained the common tag. Nothing open.
+- 13.0 accepted and merged to main (fast-forward after rebase, no conflicts) — Droid `glm-5.3` `-r high`, reviewed by headless Codex (no blockers; six panel fixes applied). Prometheus v3.15.0, Grafana 13.2.4, postgres-exporter v0.20.1 under the `monitoring` profile; read-only role `grafana_reader` created by a one-shot container. Verified with the stack up: both targets up, three dashboards listed, both datasources healthy, 41 expressions parse with no NaN, integrity queries return 0, role refused INSERT and UPDATE. Panels on the 12.0 meters are checked with data in task 14.0.
 
 ## Rules for Every Task
 
