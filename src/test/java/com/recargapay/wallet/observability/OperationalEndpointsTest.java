@@ -105,8 +105,17 @@ class OperationalEndpointsTest extends IntegrationTest {
 		Response metrics = given().when().get("/actuator/prometheus");
 
 		metrics.then().statusCode(200);
-		assertThat(metrics.asString()).contains("wallet_operations_total{application=\"wallet-service\"",
-				"http_server_requests_seconds_bucket{application=\"wallet-service\"");
+		List<String> samples = sampleLinesOf(metrics);
+		assertThat(samples).isNotEmpty();
+		assertThat(samples).allMatch(line -> line.contains("application=\"wallet-service\""));
+	}
+
+	/**
+	 * The served text without its comments and blank lines: one line per meter
+	 * sample.
+	 */
+	private List<String> sampleLinesOf(Response metrics) {
+		return metrics.asString().lines().filter(line -> !line.startsWith("#") && !line.isBlank()).toList();
 	}
 
 	@Test
