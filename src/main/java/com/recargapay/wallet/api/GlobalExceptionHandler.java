@@ -11,6 +11,7 @@ import com.recargapay.wallet.domain.exception.SameWalletTransferException;
 import com.recargapay.wallet.domain.exception.WalletAlreadyExistsException;
 import com.recargapay.wallet.domain.exception.WalletBusyException;
 import com.recargapay.wallet.domain.exception.WalletNotFoundException;
+import com.recargapay.wallet.observability.ProblemMetrics;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -29,6 +30,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private final ProblemMetrics problems;
+
+	public GlobalExceptionHandler(ProblemMetrics problems) {
+		this.problems = problems;
+	}
 
 	@ExceptionHandler(WalletAlreadyExistsException.class)
 	public ProblemDetail walletAlreadyExists(WalletAlreadyExistsException duplicateUser) {
@@ -119,7 +126,8 @@ public class GlobalExceptionHandler {
 		return problem(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred");
 	}
 
-	private static ProblemDetail problem(HttpStatus status, String code, String detail) {
+	private ProblemDetail problem(HttpStatus status, String code, String detail) {
+		problems.counted(code);
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
 		problem.setTitle(status.getReasonPhrase());
 		problem.setProperty("code", code);

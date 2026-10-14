@@ -2,6 +2,7 @@ package com.recargapay.wallet.observability;
 
 import static com.recargapay.wallet.support.LedgerActions.deposit;
 import static com.recargapay.wallet.support.WalletActions.aWallet;
+import static com.recargapay.wallet.support.WalletActions.readBalance;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,7 +69,44 @@ class OperationalEndpointsTest extends IntegrationTest {
 		metrics.then().statusCode(200);
 		assertThat(metrics.getContentType()).contains("text/plain");
 		assertThat(metrics.asString()).contains("# TYPE wallet_operations_total counter",
-				"wallet_operations_total{outcome=\"SUCCESS\",type=\"DEPOSIT\"}");
+				"wallet_operations_total{application=\"wallet-service\",outcome=\"SUCCESS\",type=\"DEPOSIT\"}");
+	}
+
+	@Test
+	@DisplayName("8: the Prometheus text serves histogram buckets for the HTTP request timer")
+	void prometheusServesBucketsForTheHttpRequestTimer() {
+		WalletId wallet = aWallet();
+
+		readBalance(wallet).then().statusCode(200);
+		Response metrics = given().when().get("/actuator/prometheus");
+
+		metrics.then().statusCode(200);
+		assertThat(metrics.asString()).contains("http_server_requests_seconds_bucket{");
+	}
+
+	@Test
+	@DisplayName("8: the Prometheus text serves histogram buckets for the operation timer")
+	void prometheusServesBucketsForTheOperationTimer() {
+		WalletId wallet = aWallet();
+
+		deposit(wallet, "50.00").then().statusCode(201);
+		Response metrics = given().when().get("/actuator/prometheus");
+
+		metrics.then().statusCode(200);
+		assertThat(metrics.asString()).contains("wallet_operation_duration_seconds_bucket{");
+	}
+
+	@Test
+	@DisplayName("8: every served meter carries the common application tag")
+	void everyServedMeterCarriesTheApplicationTag() {
+		WalletId wallet = aWallet();
+
+		deposit(wallet, "50.00").then().statusCode(201);
+		Response metrics = given().when().get("/actuator/prometheus");
+
+		metrics.then().statusCode(200);
+		assertThat(metrics.asString()).contains("wallet_operations_total{application=\"wallet-service\"",
+				"http_server_requests_seconds_bucket{application=\"wallet-service\"");
 	}
 
 	@Test

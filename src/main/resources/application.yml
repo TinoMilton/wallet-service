@@ -38,6 +38,18 @@ logging:
       console: logstash
 
 management:
+  metrics:
+    distribution:
+      # Histogram buckets, so p95 and p99 can be computed from the served
+      # _bucket series. The operation timer is created under its Prometheus
+      # name, whose underscores need the bracket notation to survive binding.
+      percentiles-histogram:
+        http.server.requests: true
+        "[wallet_operation_duration_seconds]": true
+    # Every served meter says which application it came from, so one service's
+    # series can be told apart from another's on the same Prometheus server.
+    tags:
+      application: wallet-service
   endpoint:
     health:
       # Component details stay private: a probe's caller needs the status, not the internals.

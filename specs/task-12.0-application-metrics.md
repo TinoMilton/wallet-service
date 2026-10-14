@@ -18,23 +18,23 @@ The dashboards of task 13.0 need three things the service does not publish yet: 
 
 ## Subtasks
 
-- [ ] 12.1 Enable the histograms and the common tag in `application.yml`
-- [ ] 12.2 Count problems by code
-- [ ] 12.3 Count idempotent replays by type
-- [ ] 12.4 Tests
-- [ ] 12.5 Update techspec.md section 8 ("Monitoring and Observability") with the new meters and the histograms. Leave the "Dashboards" bullet alone; task 14.0 owns it.
+- [x] 12.1 Enable the histograms and the common tag in `application.yml`
+- [x] 12.2 Count problems by code
+- [x] 12.3 Count idempotent replays by type
+- [x] 12.4 Tests
+- [x] 12.5 Update techspec.md section 8 ("Monitoring and Observability") with the new meters and the histograms. Leave the "Dashboards" bullet alone; task 14.0 owns it.
 
 ## Task Tests
 
 One behaviour per test, given/when/then, in the style of the existing observability tests. These are not business rules, so no BR id.
 
-- [ ] Buckets are served for the HTTP request timer
-- [ ] Buckets are served for the operation timer
-- [ ] The common tag is served
-- [ ] A rejected request increments the counter of its own code (for example `INSUFFICIENT_FUNDS`)
-- [ ] A replay increments the replay counter of its type
-- [ ] A first execution does not increment the replay counter
-- [ ] A key reused with a different request does not increment the replay counter
+- [x] Buckets are served for the HTTP request timer
+- [x] Buckets are served for the operation timer
+- [x] The common tag is served
+- [x] A rejected request increments the counter of its own code (for example `INSUFFICIENT_FUNDS`)
+- [x] A replay increments the replay counter of its type
+- [x] A first execution does not increment the replay counter
+- [x] A key reused with a different request does not increment the replay counter
 
 Tests share one Spring context and one registry: assert on the difference before and after, never on absolute values.
 

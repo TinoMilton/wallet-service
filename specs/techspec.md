@@ -288,9 +288,11 @@ Documented, not built:
 
 ### Monitoring and Observability
 
-- **Metrics** (Prometheus format at `/actuator/prometheus`):
+- **Metrics** (Prometheus format at `/actuator/prometheus`, every meter tagged `application="wallet-service"`):
   - `wallet_operations_total{type,outcome}`
-  - `wallet_operation_duration_seconds{type}`
+  - `wallet_operation_duration_seconds{type}` and `http_server_requests_seconds`, both served with histogram buckets (`_bucket` series) so p95 and p99 can be computed
+  - `wallet_api_problems_total{code}`, one count for every problem detail the API answers with
+  - `wallet_idempotent_replays_total{type}`, one count for every successful idempotent replay
   - `wallet_outbox_unpublished` (gauge) and `wallet_outbox_lag_seconds`
   - Standard HTTP, JVM and HikariCP metrics
 - **Logs:** JSON, one line per event, with `requestId`, `walletId` and `operationId`. Business rejections log at INFO, lock timeouts at WARN, unexpected failures at ERROR.
