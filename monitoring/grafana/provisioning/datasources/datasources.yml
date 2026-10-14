@@ -17,11 +17,14 @@ datasources:
     type: postgres
     access: proxy
     url: postgres:5432
-    database: $POSTGRES_DB
     user: grafana_reader
     secureJsonData:
       password: $WALLET_GRAFANA_DB_PASSWORD
     jsonData:
+      # The postgres plugin reads the database from jsonData, not from a
+      # top-level `database` key; without it every SQL panel fails with
+      # "Postgres requires a default database".
+      database: $POSTGRES_DB
       sslmode: disable
       postgresVersion: 1800
       timescaledb: false
