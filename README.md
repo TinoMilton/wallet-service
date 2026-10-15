@@ -1,6 +1,6 @@
 # Wallet Service
 
-[![CI](https://github.com/TinoMilton/recarga-pay-challenge/actions/workflows/ci.yml/badge.svg)](https://github.com/TinoMilton/recarga-pay-challenge/actions/workflows/ci.yml)
+[![CI](https://github.com/TinoMilton/wallet-service/actions/workflows/ci.yml/badge.svg)](https://github.com/TinoMilton/wallet-service/actions/workflows/ci.yml)
 
 A wallet microservice for the RecargaPay take-home assessment. It creates a wallet for a user and moves money in it: deposit, withdraw, and transfer to another wallet. Every operation appends to an immutable, per-wallet ledger, so any balance, current or at any past instant, can be explained from the record that produced it. Commands are synchronous: the caller knows immediately whether money moved. The assignment statement itself is not included in this public repository; this README and the [design guide](docs/design.md) summarise its requirements.
 
@@ -59,7 +59,3 @@ Examples for every endpoint and the full error code list are in the [API guide](
 | [Repository layout](docs/repository-layout.md) | What lives where |
 | [Agent orchestration](docs/orchestration.md) | How the coding agents were coordinated |
 | [Specifications](specs/) | PRD, tech spec (business rule catalogue in section 9.2), task breakdown |
-
-## Time spent
-
-The implementation commits span 2026-10-11, from the first commit at 12:16 (UTC-3) to the last at 15:36 (UTC-3), an elapsed time of 3 hours 20 minutes, measured with `git log` on the main branch. The later additions, measured the same way, are the manual test console on 2026-10-12, from 12:28 to 12:41 (UTC-3), an elapsed 13 minutes, and the monitoring stack with its dashboards and load generator, from 2026-10-13 23:55 to 2026-10-14 09:01 (UTC-3); that span includes an overnight pause, so it is not a measure of effort. Design and specification time, before the first commit, is reported separately by the author.
